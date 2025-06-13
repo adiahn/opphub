@@ -1,10 +1,7 @@
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import { Image, ImageStyle, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 import { ThemedText } from '../ThemedText';
-import { ThemedView } from '../ThemedView';
-import { IconSymbol } from './IconSymbol';
 
 interface CardProps {
   id: string;
@@ -40,88 +37,34 @@ export function Card({
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
 
-  // Generate author initials if author is provided
-  const authorInitials = author
-    ? author
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-    : undefined;
-
   return (
     <Link href={`/post/${id}`} asChild>
       <Pressable style={({ pressed }) => [
         styles.container,
         {
-          backgroundColor: '#FAFAFA',
-          borderColor: isDark ? '#333' : '#eee',
+          backgroundColor: isDark ? '#23272F' : '#fff',
           transform: [{ scale: pressed ? 0.98 : 1 }],
           shadowOpacity: pressed ? 0.18 : 0.10,
         },
         style,
       ]}>
-        {imageUrl && (
-          <View style={styles.imageWrapper}>
+        <View style={styles.row}>
+          {imageUrl && (
             <Image
               source={{ uri: imageUrl }}
               style={[styles.image, imageStyle]}
               resizeMode="cover"
             />
-            {/* Gradient overlay for readability */}
-            <LinearGradient
-              colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.7)"]}
-              style={styles.gradientOverlay}
-            />
-            {/* Floating badges */}
-            <View style={styles.floatingBadges}>
-              <View style={styles.badge}>
-                <IconSymbol name="eye.fill" size={12} color="#fff" />
-                <ThemedText style={styles.badgeText}>{views}</ThemedText>
-              </View>
-              <View style={styles.badge}>
-                <IconSymbol name="calendar" size={12} color="#fff" />
-                <ThemedText style={styles.badgeText}>{date}</ThemedText>
-              </View>
+          )}
+          <View style={styles.infoContainer}>
+            <ThemedText style={styles.title} numberOfLines={2}>{title}</ThemedText>
+            <ThemedText style={styles.description} numberOfLines={2}>{description}</ThemedText>
+            <View style={styles.metaRow}>
+              {category && <ThemedText style={styles.category}>{category}</ThemedText>}
+              <ThemedText style={styles.date}>{date}</ThemedText>
             </View>
-            {/* Author avatar (optional) */}
-            {authorInitials && (
-              <View style={styles.avatar}>
-                <ThemedText style={styles.avatarText}>{authorInitials}</ThemedText>
-              </View>
-            )}
           </View>
-        )}
-        <ThemedView style={styles.content}>
-          <ThemedText style={styles.title} numberOfLines={1} ellipsizeMode="tail">
-            {title}
-          </ThemedText>
-          <ThemedText style={styles.description} numberOfLines={1} ellipsizeMode="tail">
-            {description}
-          </ThemedText>
-          <View style={styles.badgeRow}>
-            <View style={styles.badgeLight}>
-              <IconSymbol name="favorite" size={12} color="#888" />
-              <ThemedText style={styles.badgeTextLight}>{likes}</ThemedText>
-            </View>
-            <View style={styles.badgeLight}>
-              <IconSymbol name="bar-chart" size={12} color="#888" />
-              <ThemedText style={styles.badgeTextLight}>{visits}</ThemedText>
-            </View>
-            {location && (
-              <View style={styles.badgeLight}>
-                <IconSymbol name="location.fill" size={10} color="#888" />
-                <ThemedText style={styles.badgeTextLight}>{location}</ThemedText>
-              </View>
-            )}
-            {category && (
-              <View style={styles.badgeLight}>
-                <IconSymbol name="tag.fill" size={10} color="#888" />
-                <ThemedText style={styles.badgeTextLight}>{category}</ThemedText>
-              </View>
-            )}
-          </View>
-        </ThemedView>
+        </View>
       </Pressable>
     </Link>
   );
@@ -129,124 +72,70 @@ export function Card({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    marginBottom: 18,
+    borderColor: '#eee',
+    marginBottom: 16,
+    marginHorizontal: 8,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.10,
-    shadowRadius: 8,
-    elevation: 3,
-    backgroundColor: '#FAFAFA',
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    paddingTop: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+    backgroundColor: '#fff',
+    padding: 0,
   },
-  imageWrapper: {
-    position: 'relative',
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   image: {
-    width: '100%',
+    width: 90,
     height: 90,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
+    borderRadius: 12,
+    backgroundColor: '#eee',
+    marginRight: 14,
+    marginLeft: 8,
   },
-  gradientOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 40,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-  },
-  floatingBadges: {
-    position: 'absolute',
-    left: 8,
-    bottom: 8,
-    flexDirection: 'row',
-    gap: 4,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginRight: 4,
-  },
-  badgeText: {
-    fontSize: 14,
-    color: '#fff',
-    marginLeft: 3,
-    fontWeight: '600',
-  },
-  avatar: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#fff',
-    alignItems: 'center',
+  infoContainer: {
+    flex: 1,
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.10,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  avatarText: {
-    color: '#222',
-    fontWeight: '700',
-    fontSize: 17,
-  },
-  content: {
-    paddingTop: 14,
-    paddingHorizontal: 8,
-    minHeight: 70,
+    paddingVertical: 10,
+    paddingRight: 10,
   },
   title: {
-    fontSize: 19,
+    fontSize: 16,
     fontWeight: '700',
-    marginBottom: 2,
+    marginBottom: 4,
     color: '#222',
-    letterSpacing: 0.05,
   },
   description: {
-    fontSize: 17,
-    lineHeight: 25,
-    marginBottom: 4,
-    opacity: 0.85,
+    fontSize: 13,
     color: '#444',
-    letterSpacing: 0.02,
-    fontWeight: '400',
+    marginBottom: 8,
+    lineHeight: 18,
   },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 2,
-  },
-  badgeLight: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    marginRight: 3,
-    marginBottom: 3,
+    gap: 8,
   },
-  badgeTextLight: {
-    fontSize: 14,
-    color: '#555',
-    fontWeight: '400',
-    marginLeft: 2,
+  category: {
+    fontSize: 12,
+    color: '#4B72FA',
+    backgroundColor: '#E5E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 6,
+    fontWeight: '600',
+  },
+  date: {
+    fontSize: 12,
+    color: '#888',
   },
 }); 

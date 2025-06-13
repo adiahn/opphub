@@ -3,75 +3,104 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { Image, ScrollView, Share, StyleSheet, TouchableOpacity } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import RenderHtml from 'react-native-render-html';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Mock data - in a real app, this would come from an API
-const MOCK_POSTS = {
-  '1': {
-    id: '1',
-    title: 'Getting Started with React Native',
-    description: 'Learn the basics of React Native and how to build your first mobile app with this comprehensive guide.',
-    content: `React Native is a powerful framework that allows you to build native mobile applications using JavaScript and React. In this comprehensive guide, we'll explore the fundamentals of React Native and help you get started with your first mobile app.
-
-## Why React Native?
-
-React Native combines the best parts of native development with React, a best-in-class JavaScript library for building user interfaces. You can use React Native today in your existing Android and iOS projects or you can create a whole new app from scratch.
-
-## Getting Started
-
-To get started with React Native, you'll need to have Node.js installed on your computer. Then, you can use the following command to create a new React Native project:
-
-\`\`\`bash
-npx react-native init MyApp
-\`\`\`
-
-## Key Features
-
-- **Cross-platform**: Write once, run anywhere
-- **Native performance**: React Native apps are built using native components
-- **Hot reloading**: See your changes instantly
-- **Large ecosystem**: Access to thousands of pre-built components
-
-## Next Steps
-
-Once you've created your first React Native app, you can start exploring more advanced topics like:
-- Navigation
-- State management
-- Native modules
-- Performance optimization`,
-    imageUrl: 'https://picsum.photos/800/400',
-    date: 'March 15, 2024',
-    author: 'John Doe',
-    readTime: '5 min read',
-  },
-};
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function PostScreen() {
   const { id } = useLocalSearchParams();
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
-  const post = MOCK_POSTS[id as keyof typeof MOCK_POSTS];
+  const [post, setPost] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  if (!post) {
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    fetch(`https://opportunitieshub.ng/wp-json/wp/v2/posts/${id}?_embed`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch post');
+        const data = await res.json();
+        setPost(data);
+      })
+      .catch((err) => {
+        setError('Could not load post.');
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const handleShare = async () => {
+    if (!post) return;
+    try {
+      await Share.share({
+        message: `Check out this post: ${post.title.rendered}\nhttps://opportunitieshub.ng/post/${post.id}`,
+        url: `https://opportunitieshub.ng/post/${post.id}`,
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Could not share post.');
+    }
+  };
+
+  // Helper: Split HTML content into sections by <h2>
+  function splitHtmlSections(html: string) {
+    const regex = /<h2[^>]*>(.*?)<\/h2>/gi;
+    let lastIndex = 0;
+    let match;
+    const sections = [];
+    let sectionTitle = 'Details';
+    while ((match = regex.exec(html)) !== null) {
+      const title = match[1];
+      const start = match.index;
+      if (start > lastIndex) {
+        sections.push({
+          title: sectionTitle,
+          html: html.slice(lastIndex, start)
+        });
+      }
+      sectionTitle = title;
+      lastIndex = regex.lastIndex;
+    }
+    // Push last section
+    if (lastIndex < html.length) {
+      sections.push({ title: sectionTitle, html: html.slice(lastIndex) });
+    }
+    return sections;
+  }
+
+  if (loading) {
     return (
-      <ThemedView style={styles.container}>
-        <ThemedText>Post not found</ThemedText>
+      <ThemedView style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={Colors.light.tint} />
       </ThemedView>
     );
   }
 
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Check out this post: ${post.title}`,
-        url: `https://yourapp.com/post/${post.id}`,
-      });
-    } catch (error) {
-      console.error('Error sharing post:', error);
-    }
-  };
+  if (error || !post) {
+    return (
+      <ThemedView style={[styles.container, styles.centered]}>
+        <ThemedText>{error || 'Post not found'}</ThemedText>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    );
+  }
+
+  // Extract meta info
+  const imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+  const author = post._embedded?.author?.[0]?.name || 'Unknown';
+  const authorAvatar = post._embedded?.author?.[0]?.avatar_urls?.['96'];
+  const date = new Date(post.date).toLocaleDateString();
+  const category = post._embedded?.['wp:term']?.[0]?.[0]?.name;
+  const readTime = Math.max(1, Math.round(post.content.rendered.split(' ').length / 200));
 
   return (
     <>
@@ -79,29 +108,69 @@ export default function PostScreen() {
         options={{
           title: '',
           headerTransparent: true,
-          headerRight: () => (
-            <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
-              <IconSymbol
-                name="square.and.arrow.up"
-                size={24}
-                color={isDark ? Colors.dark.text : Colors.light.text}
-              />
-            </TouchableOpacity>
-          ),
         }}
       />
-      <ScrollView style={styles.container}>
-        <Image source={{ uri: post.imageUrl }} style={styles.image} />
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* Back Arrow */}
+        <View style={[styles.headerRow, { paddingTop: insets.top + 8 }]}> 
+          <TouchableOpacity onPress={() => router.back()} style={styles.backIconButton}>
+            <IconSymbol name="chevron.left" size={28} color={isDark ? Colors.dark.text : Colors.light.text} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
+            <IconSymbol
+              name="square.and.arrow.up"
+              size={24}
+              color={isDark ? Colors.dark.text : Colors.light.text}
+            />
+          </TouchableOpacity>
+        </View>
+        {imageUrl && (
+          <Image source={{ uri: imageUrl }} style={styles.wideImage} resizeMode="cover" />
+        )}
+        <View style={styles.headerContent}>
+          <ThemedText style={styles.title}>{post.title.rendered}</ThemedText>
+          <View style={styles.metaRow}>
+            {authorAvatar && (
+              <Image source={{ uri: authorAvatar }} style={styles.avatar} />
+            )}
+            <ThemedText style={styles.metaText}>{author}</ThemedText>
+            <ThemedText style={styles.metaText}>•</ThemedText>
+            <ThemedText style={styles.metaText}>{date}</ThemedText>
+            {category && (
+              <>
+                <ThemedText style={styles.metaText}>•</ThemedText>
+                <ThemedText style={styles.metaText}>{category}</ThemedText>
+              </>
+            )}
+            <ThemedText style={styles.metaText}>•</ThemedText>
+            <ThemedText style={styles.metaText}>{readTime} min read</ThemedText>
+          </View>
+        </View>
+        <View style={styles.divider} />
         <ThemedView style={styles.content}>
-          <ThemedText style={styles.title}>{post.title}</ThemedText>
-          <ThemedView style={styles.metaContainer}>
-            <ThemedText style={styles.metaText}>{post.author}</ThemedText>
-            <ThemedText style={styles.metaText}>•</ThemedText>
-            <ThemedText style={styles.metaText}>{post.date}</ThemedText>
-            <ThemedText style={styles.metaText}>•</ThemedText>
-            <ThemedText style={styles.metaText}>{post.readTime}</ThemedText>
-          </ThemedView>
-          <ThemedText style={styles.content}>{post.content}</ThemedText>
+          {/* Sectioned Content */}
+          <View style={styles.sectionsContainer}>
+            {splitHtmlSections(post.content.rendered).map((section, idx) => (
+              <View key={idx} style={styles.sectionCard}>
+                {section.title && section.title !== 'Details' && (
+                  <ThemedText style={styles.sectionTitle}>{section.title}</ThemedText>
+                )}
+                <RenderHtml
+                  contentWidth={SCREEN_WIDTH - 48}
+                  source={{ html: section.html }}
+                  baseStyle={{ color: isDark ? Colors.dark.text : Colors.light.text, fontSize: 16, lineHeight: 26 }}
+                  tagsStyles={{
+                    h1: { fontSize: 26, fontWeight: '700', marginVertical: 12 },
+                    h2: { fontSize: 22, fontWeight: '700', marginVertical: 10 },
+                    h3: { fontSize: 18, fontWeight: '700', marginVertical: 8 },
+                    p: { marginVertical: 8 },
+                    li: { marginVertical: 4 },
+                    a: { color: Colors.light.tint, textDecorationLine: 'underline' },
+                  }}
+                />
+              </View>
+            ))}
+          </View>
         </ThemedView>
       </ScrollView>
     </>
@@ -111,30 +180,110 @@ export default function PostScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   image: {
     width: '100%',
-    height: 300,
+    height: 260,
+    backgroundColor: '#eee',
   },
   content: {
     padding: 16,
+    paddingTop: 0,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 12,
+    fontSize: 28,
+    fontWeight: '800',
+    marginBottom: 14,
+    marginTop: 8,
+    color: '#222',
   },
-  metaContainer: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 18,
+    gap: 8,
   },
   metaText: {
-    fontSize: 14,
-    opacity: 0.6,
-    marginHorizontal: 4,
+    fontSize: 15,
+    opacity: 0.7,
+    marginHorizontal: 2,
+  },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
+    backgroundColor: '#eee',
   },
   shareButton: {
     marginRight: 16,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  backIconButton: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: '#F2F2F7',
+    marginRight: 8,
+  },
+  sectionsContainer: {
+    marginTop: 8,
+    gap: 18,
+  },
+  sectionCard: {
+    backgroundColor: '#F8F9FB',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    color: '#4B72FA',
+  },
+  backButton: {
+    marginTop: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    backgroundColor: Colors.light.tint,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  wideImage: {
+    width: '100%',
+    height: 320,
+    backgroundColor: '#eee',
+    borderRadius: 18,
+    marginBottom: 18,
+  },
+  headerContent: {
+    paddingHorizontal: 18,
+    paddingBottom: 10,
+    marginBottom: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e5e5e5',
+    marginHorizontal: 18,
+    marginBottom: 18,
   },
 }); 
