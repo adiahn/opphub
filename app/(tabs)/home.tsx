@@ -1,18 +1,24 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useCategories, useFreshPosts, usePosts } from '@/hooks/usePosts';
 import { Category, Post } from '@/services/api';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const POSTS_PER_PAGE = 10;
 
 export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<'all' | number>('all');
   const [page, setPage] = useState(1);
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
@@ -44,9 +50,25 @@ export default function HomeScreen() {
     const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
       setIsOnline(state.isConnected ?? false);
     });
-
     return () => unsubscribe();
   }, []);
+
+  // Handle initial and paginated posts
+  useEffect(() => {
+    if (postsData && page === 1) {
+      setAllPosts(postsData.data);
+      setHasMore(page < postsData.totalPages);
+    } else if (postsData && page > 1) {
+      setAllPosts(prev => {
+        // Avoid duplicates
+        const newPosts = postsData.data.filter(
+          (p) => !prev.some((existing) => existing.id === p.id)
+        );
+        return [...prev, ...newPosts];
+      });
+      setHasMore(page < postsData.totalPages);
+    }
+  }, [postsData, page]);
 
   const onRefresh = async () => {
     if (!isOnline) {
@@ -56,6 +78,8 @@ export default function HomeScreen() {
       );
       return;
     }
+    setPage(1);
+    setAllPosts([]);
     await Promise.all([
       refetchPosts(),
       refetchFreshPosts(),
@@ -63,10 +87,12 @@ export default function HomeScreen() {
     ]);
   };
 
-  const loadMore = () => {
-    if (postsData?.totalPages && page < postsData.totalPages) {
-      setPage(prev => prev + 1);
-    }
+  const loadMore = async () => {
+    if (!hasMore || isLoadingMore) return;
+    setIsLoadingMore(true);
+    setPage(prev => prev + 1);
+    // React Query will refetch postsData for the new page, useEffect will append
+    setTimeout(() => setIsLoadingMore(false), 600); // Simulate loading effect
   };
 
   const getReadLength = (content: string) => {
@@ -74,9 +100,9 @@ export default function HomeScreen() {
     return Math.max(1, Math.round(words / 200));
   };
 
-  const filteredPosts = postsData?.data.filter((post: Post) => 
+  const filteredPosts = allPosts.filter((post: Post) => 
     !freshPosts?.some((freshPost: Post) => freshPost.id === post.id)
-  ) || [];
+  );
 
   // Filter posts by selected category
   const categoryFilteredPosts = selectedCategory === 'all'
@@ -89,18 +115,61 @@ export default function HomeScreen() {
   const isLoading = isLoadingPosts || isLoadingFreshPosts || isLoadingCategories;
   const hasError = isPostsError || isFreshPostsError || isCategoriesError;
 
-  if (isLoading) {
+  // Skeleton loaders
+  const renderPostSkeletons = (count = 3) => (
+    <View style={{ flexDirection: 'row', gap: 16, paddingHorizontal: 8 }}>
+      {[...Array(count)].map((_, i) => (
+        <View key={i} style={styles.freshCard}>
+          <Skeleton width={100} height={60} borderRadius={10} style={{ marginBottom: 8 }} />
+          <Skeleton width={80} height={14} borderRadius={6} style={{ marginBottom: 4 }} />
+          <Skeleton width={50} height={10} borderRadius={5} />
+        </View>
+      ))}
+    </View>
+  );
+
+  const renderCategorySkeletons = (count = 6) => (
+    <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 8 }}>
+      {[...Array(count)].map((_, i) => (
+        <Skeleton key={i} width={70} height={32} borderRadius={16} />
+      ))}
+    </View>
+  );
+
+  if (isLoading && page === 1) {
     return (
-      <ThemedView style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={Colors.light.tint} />
-      </ThemedView>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle}>Opportunities Hub</Text>
+        </View>
+        <ScrollView
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} />}
+        >
+          <View style={styles.sectionHeaderRow}>
+            <ThemedText style={styles.sectionTitle}>Fresh Posts</ThemedText>
+          </View>
+          {renderPostSkeletons(3)}
+          <View style={styles.sectionDivider} />
+          <View style={styles.sectionHeaderRow}>
+            <ThemedText style={styles.sectionTitle}>Posts</ThemedText>
+          </View>
+          {renderPostSkeletons(4)}
+          <View style={styles.separator} />
+          <View style={styles.sectionHeaderRow}>
+            <ThemedText style={styles.sectionTitle}>View By Categories</ThemedText>
+          </View>
+          {renderCategorySkeletons(6)}
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
   if (hasError) {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText>Error loading content. Please try again.</ThemedText>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>😕</Text>
+        <ThemedText style={{ fontSize: 18, marginBottom: 8 }}>Error loading content.</ThemedText>
+        <ThemedText style={{ color: '#888', marginBottom: 16 }}>Please check your connection or try again.</ThemedText>
         <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
           <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
         </TouchableOpacity>
@@ -110,10 +179,14 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Opportunities Hub</Text>
+      </View>
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isLoading && page === 1} onRefresh={onRefresh} />
         }
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
         {/* Fresh Posts */}
         <View style={styles.sectionHeaderRow}>
@@ -123,8 +196,11 @@ export default function HomeScreen() {
           horizontal 
           showsHorizontalScrollIndicator={false} 
           style={styles.horizontalScroll}
+          contentContainerStyle={{ paddingLeft: 8, paddingRight: 8 }}
         >
-          {freshPosts?.map((post: Post) => {
+          {freshPosts?.length === 0 ? (
+            <Text style={{ color: '#888', padding: 16 }}>No fresh posts found.</Text>
+          ) : freshPosts?.map((post: Post) => {
             const imageUrl =
               post._embedded &&
               post._embedded['wp:featuredmedia'] &&
@@ -139,8 +215,10 @@ export default function HomeScreen() {
 
             return (
               <View key={post.id} style={styles.freshCard}>
-                {imageUrl && (
+                {imageUrl ? (
                   <Image source={{ uri: imageUrl }} style={styles.freshImage} />
+                ) : (
+                  <Skeleton width={100} height={60} borderRadius={10} style={{ marginBottom: 8 }} />
                 )}
                 <View style={styles.freshContent}>
                   <Text style={styles.freshTitle} numberOfLines={2}>{post.title.rendered}</Text>
@@ -155,13 +233,16 @@ export default function HomeScreen() {
           })}
         </ScrollView>
 
-        <View style={styles.separator} />
+        {/* Divider between Fresh Posts and Posts */}
+        <View style={styles.sectionDivider} />
 
         {/* Posts */}
         <View style={styles.sectionHeaderRow}>
           <ThemedText style={styles.sectionTitle}>Posts</ThemedText>
         </View>
-        {categoryFilteredPosts.map((post: Post) => {
+        {categoryFilteredPosts.length === 0 ? (
+          <Text style={{ color: '#888', padding: 16 }}>No posts found for this category.</Text>
+        ) : categoryFilteredPosts.map((post: Post) => {
           const imageUrl =
             post._embedded &&
             post._embedded['wp:featuredmedia'] &&
@@ -189,21 +270,13 @@ export default function HomeScreen() {
             />
           );
         })}
-        {postsData?.totalPages && page < postsData.totalPages && (
-          <TouchableOpacity 
-            style={styles.seeMoreButton} 
-            onPress={loadMore}
-            disabled={isLoadingPosts}
-          >
-            {isLoadingPosts ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color={Colors.light.tint} />
-                <ThemedText style={[styles.seeMoreText, styles.loadingText]}>Loading...</ThemedText>
-              </View>
-            ) : (
-              <ThemedText style={styles.seeMoreText}>See More</ThemedText>
-            )}
-          </TouchableOpacity>
+        {hasMore && (
+          <Pressable onPress={loadMore} style={styles.seeMorePressable} disabled={isLoadingMore}>
+            <Text style={styles.seeMoreTextLink}>
+              See more
+              {isLoadingMore && <ActivityIndicator size="small" color={Colors.light.tint} style={{ marginLeft: 8 }} />}
+            </Text>
+          </Pressable>
         )}
 
         <View style={styles.separator} />
@@ -216,6 +289,7 @@ export default function HomeScreen() {
           horizontal 
           showsHorizontalScrollIndicator={false} 
           style={styles.horizontalScroll}
+          contentContainerStyle={{ paddingLeft: 8, paddingRight: 8 }}
         >
           <TouchableOpacity
             style={[
@@ -253,95 +327,126 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F7F8FA',
   },
-  safeHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
+  headerContainer: {
+    paddingTop: 16,
+    paddingBottom: 8,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 14,
-    marginTop: 30,
-    textAlign: 'center',
+    fontWeight: 'bold',
+    color: Colors.light.tint,
+    letterSpacing: 1,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 21,
+    fontSize: 22,
     fontWeight: '700',
+    color: '#222',
   },
-  horizontalScroll: {
-    marginBottom: 16,
+  sectionDivider: {
+    height: 1.5,
+    backgroundColor: Colors.light.tint,
+    marginVertical: 10,
+    marginHorizontal: 20,
+    borderRadius: 1,
+    opacity: 0.18,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#E5E8F0',
+    marginVertical: 12,
+    marginHorizontal: 16,
+    borderRadius: 1,
   },
   freshCard: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    marginRight: 14,
-    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginRight: 12,
+    marginBottom: 8,
+    padding: 10,
+    width: 120,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-    width: 280,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   freshImage: {
-    width: '100%',
-    height: 140,
-    backgroundColor: '#eee',
+    width: 100,
+    height: 60,
+    borderRadius: 10,
+    marginBottom: 8,
+    backgroundColor: '#E1E9EE',
   },
   freshContent: {
-    padding: 12,
+    flex: 1,
   },
   freshTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-  card: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardImage: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#eee',
-  },
-  cardContent: {
-    flex: 1,
-    padding: 12,
-  },
-  title: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#222',
     marginBottom: 4,
   },
-  seeMoreButton: {
+  metaRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    marginTop: 8,
-    marginBottom: 16,
+    flexWrap: 'wrap',
+    gap: 6,
   },
-  seeMoreText: {
-    fontSize: 14,
+  meta: {
+    fontSize: 11,
+    color: '#888',
+    marginRight: 6,
+  },
+  card: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    padding: 0,
+  },
+  cardImage: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    height: 110,
+    backgroundColor: '#E1E9EE',
+  },
+  seeMorePressable: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  seeMoreTextLink: {
     color: Colors.light.tint,
     fontWeight: '600',
+    fontSize: 15,
+    textDecorationLine: 'underline',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -351,29 +456,13 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 8,
   },
-  separator: {
-    height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 20,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-  },
-  meta: {
-    fontSize: 12,
-    color: '#666',
-    marginRight: 8,
-  },
   categoryChip: {
     backgroundColor: '#E5E8F0',
-    borderRadius: 20,
+    borderRadius: 16,
     paddingHorizontal: 18,
     paddingVertical: 8,
-    marginRight: 10,
-    marginTop: 8,
-    marginBottom: 16,
+    marginRight: 8,
+    marginBottom: 8,
   },
   categoryChipText: {
     fontSize: 14,
@@ -387,16 +476,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
-  offlineBanner: {
-    backgroundColor: '#ff6b6b',
-    padding: 8,
-    alignItems: 'center',
-  },
-  offlineText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   retryButton: {
     padding: 12,
     backgroundColor: Colors.light.tint,
@@ -408,9 +487,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  horizontalScroll: {
+    marginBottom: 16,
   },
 });
