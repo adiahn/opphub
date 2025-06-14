@@ -20,6 +20,7 @@ export default function HomeScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
+  const [pendingPage, setPendingPage] = useState<number | null>(null);
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
 
@@ -90,10 +91,16 @@ export default function HomeScreen() {
   const loadMore = async () => {
     if (!hasMore || isLoadingMore) return;
     setIsLoadingMore(true);
+    setPendingPage(page + 1);
     setPage(prev => prev + 1);
-    // React Query will refetch postsData for the new page, useEffect will append
-    setTimeout(() => setIsLoadingMore(false), 600); // Simulate loading effect
   };
+
+  useEffect(() => {
+    if (pendingPage !== null && postsData && page === pendingPage) {
+      setIsLoadingMore(false);
+      setPendingPage(null);
+    }
+  }, [postsData, page, pendingPage]);
 
   const getReadLength = (content: string) => {
     const words = content.replace(/<[^>]+>/g, '').split(/\s+/).length;
@@ -272,10 +279,10 @@ export default function HomeScreen() {
         })}
         {hasMore && (
           <Pressable onPress={loadMore} style={styles.seeMorePressable} disabled={isLoadingMore}>
-            <Text style={styles.seeMoreTextLink}>
-              See more
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={styles.seeMoreTextLink}>See more</Text>
               {isLoadingMore && <ActivityIndicator size="small" color={Colors.light.tint} style={{ marginLeft: 8 }} />}
-            </Text>
+            </View>
           </Pressable>
         )}
 
@@ -366,7 +373,7 @@ const styles = StyleSheet.create({
   sectionDivider: {
     height: 1.5,
     backgroundColor: Colors.light.tint,
-    marginVertical: 10,
+    marginVertical: 5,
     marginHorizontal: 20,
     borderRadius: 1,
     opacity: 0.18,
@@ -442,11 +449,13 @@ const styles = StyleSheet.create({
   },
   seeMoreTextLink: {
     color: Colors.light.tint,
-    fontWeight: '600',
-    fontSize: 15,
+    fontWeight: '700',
+    fontSize: 16,
     textDecorationLine: 'underline',
-    flexDirection: 'row',
-    alignItems: 'center',
+    letterSpacing: 0.2,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
   },
   loadingContainer: {
     flexDirection: 'row',
