@@ -1,9 +1,27 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+
+function TabBarIcon({ name, color, focused }: { name: string; color: string; focused: boolean }) {
+  return (
+    <View style={{
+      borderRadius: 20,
+      padding: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <IconSymbol
+        name={name as any}
+        size={26}
+        color={focused ? Colors.light.tint : '#b0b8c1'}
+      />
+    </View>
+  );
+}
 
 export default function TabLayout() {
   const theme = useColorScheme() ?? 'light';
@@ -25,8 +43,8 @@ export default function TabLayout() {
         name="home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="house.fill" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="house.fill" color={color} focused={focused} />
           ),
         }}
       />
@@ -34,8 +52,8 @@ export default function TabLayout() {
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="magnifyingglass" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="magnifyingglass" color={color} focused={focused} />
           ),
         }}
       />
@@ -43,8 +61,8 @@ export default function TabLayout() {
         name="favourites"
         options={{
           title: 'Favourites',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="heart.fill" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="heart.fill" color={color} focused={focused} />
           ),
         }}
       />
@@ -52,8 +70,8 @@ export default function TabLayout() {
         name="more"
         options={{
           title: 'More',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="ellipsis" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="grid-view" color={color} focused={focused} />
           ),
         }}
       />

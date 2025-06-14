@@ -242,7 +242,7 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingBottom: 32 }}
       >
         <View style={styles.categoriesHeaderRow}>
-          <Text style={styles.categoriesHeader}>Categories</Text>
+          <Text style={styles.categoriesHeader}>Filters</Text>
         </View>
         <ScrollView
           horizontal
@@ -284,7 +284,7 @@ export default function HomeScreen() {
         </ScrollView>
         <View style={styles.sectionDivider} />
         <View style={styles.sectionHeaderRow}>
-          <ThemedText style={styles.sectionTitle}>Fresh Posts</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Featured Posts</ThemedText>
         </View>
         <Animated.View style={{ opacity: fadeAnimFresh }}>
           <ScrollView
