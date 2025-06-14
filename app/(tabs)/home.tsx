@@ -203,9 +203,6 @@ export default function HomeScreen() {
           </View>
           {renderPostSkeletons(4)}
           <View style={styles.separator} />
-          <View style={styles.sectionHeaderRow}>
-            <ThemedText style={styles.sectionTitle}>View By Categories</ThemedText>
-          </View>
           {renderCategorySkeletons(6)}
         </ScrollView>
       </SafeAreaView>
@@ -244,7 +241,48 @@ export default function HomeScreen() {
         }
         contentContainerStyle={{ paddingBottom: 32 }}
       >
-        {/* Fresh Posts */}
+        <View style={styles.categoriesHeaderRow}>
+          <Text style={styles.categoriesHeader}>Categories</Text>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.horizontalScroll}
+          contentContainerStyle={{ paddingLeft: 4, paddingRight: 4 }}
+        >
+          <TouchableOpacity
+            style={[
+              styles.categoryChip,
+              selectedCategory === 'all' && styles.selectedCategoryChip,
+              selectedCategory === 'all' && styles.categoryChipActive,
+            ]}
+            onPress={() => setSelectedCategory('all')}
+          >
+            <Ionicons name="grid" size={14} color={selectedCategory === 'all' ? '#fff' : Colors.light.tint} style={{ marginRight: 2 }} />
+            <ThemedText style={[
+              styles.categoryChipText,
+              selectedCategory === 'all' && styles.selectedCategoryChipText,
+            ]}>All</ThemedText>
+          </TouchableOpacity>
+          {categories?.map((category: Category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={[
+                styles.categoryChip,
+                selectedCategory === category.id && styles.selectedCategoryChip,
+                selectedCategory === category.id && styles.categoryChipActive,
+              ]}
+              onPress={() => setSelectedCategory(category.id)}
+            >
+              <Ionicons name="pricetag" size={14} color={selectedCategory === category.id ? '#fff' : Colors.light.tint} style={{ marginRight: 2 }} />
+              <ThemedText style={[
+                styles.categoryChipText,
+                selectedCategory === category.id && styles.selectedCategoryChipText,
+              ]}>{category.name}</ThemedText>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <View style={styles.sectionDivider} />
         <View style={styles.sectionHeaderRow}>
           <ThemedText style={styles.sectionTitle}>Fresh Posts</ThemedText>
         </View>
@@ -294,11 +332,7 @@ export default function HomeScreen() {
             })}
           </ScrollView>
         </Animated.View>
-
-        {/* Divider between Fresh Posts and Posts */}
         <View style={styles.sectionDivider} />
-
-        {/* Posts */}
         <View style={styles.sectionHeaderRow}>
           <ThemedText style={styles.sectionTitle}>Posts</ThemedText>
         </View>
@@ -345,51 +379,6 @@ export default function HomeScreen() {
             </View>
           </Pressable>
         )}
-
-        <View style={styles.separator} />
-
-        {/* Categories */}
-        <View style={styles.sectionHeaderRow}>
-          <ThemedText style={styles.sectionTitle}>View By Categories</ThemedText>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.horizontalScroll}
-          contentContainerStyle={{ paddingLeft: 8, paddingRight: 8 }}
-        >
-          <TouchableOpacity
-            style={[
-              styles.categoryChip,
-              selectedCategory === 'all' && styles.selectedCategoryChip,
-              selectedCategory === 'all' && styles.categoryChipActive,
-            ]}
-            onPress={() => setSelectedCategory('all')}
-          >
-            <Ionicons name="grid" size={16} color={selectedCategory === 'all' ? '#fff' : Colors.light.tint} style={{ marginRight: 4 }} />
-            <ThemedText style={[
-              styles.categoryChipText,
-              selectedCategory === 'all' && styles.selectedCategoryChipText,
-            ]}>All</ThemedText>
-          </TouchableOpacity>
-          {categories?.map((category: Category) => (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category.id && styles.selectedCategoryChip,
-                selectedCategory === category.id && styles.categoryChipActive,
-              ]}
-              onPress={() => setSelectedCategory(category.id)}
-            >
-              <Ionicons name="pricetag" size={16} color={selectedCategory === category.id ? '#fff' : Colors.light.tint} style={{ marginRight: 4 }} />
-              <ThemedText style={[
-                styles.categoryChipText,
-                selectedCategory === category.id && styles.selectedCategoryChipText,
-              ]}>{category.name}</ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </Animated.ScrollView>
       {showScrollTop && (
         <TouchableOpacity style={styles.scrollTopButton} onPress={scrollToTop}>
@@ -538,16 +527,16 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     backgroundColor: '#E5E8F0',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginRight: 8,
-    marginBottom: 8,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 6,
+    marginBottom: 6,
     flexDirection: 'row',
     alignItems: 'center',
   },
   categoryChipText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#3A3A3A',
   },
@@ -571,6 +560,7 @@ const styles = StyleSheet.create({
   },
   horizontalScroll: {
     marginBottom: 16,
+    marginTop: 2,
   },
   categoryChipActive: {
     shadowColor: Colors.light.tint,
@@ -605,5 +595,18 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     zIndex: 100,
+  },
+  categoriesHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  categoriesHeader: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a2a3a',
+    letterSpacing: 0.2,
   },
 });
