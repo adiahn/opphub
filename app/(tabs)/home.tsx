@@ -6,9 +6,10 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useCategories, useFreshPosts, usePosts } from '@/hooks/usePosts';
 import { Category, Post } from '@/services/api';
+import { Ionicons } from '@expo/vector-icons';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, Image, NativeScrollEvent, NativeSyntheticEvent, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const POSTS_PER_PAGE = 10;
@@ -21,6 +22,7 @@ export default function HomeScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
   const [pendingPage, setPendingPage] = useState<number | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
 
@@ -122,6 +124,24 @@ export default function HomeScreen() {
   const isLoading = isLoadingPosts || isLoadingFreshPosts || isLoadingCategories;
   const hasError = isPostsError || isFreshPostsError || isCategoriesError;
 
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+  const scrollViewRef = React.useRef<ScrollView>(null);
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setShowScrollTop(offsetY > 300);
+      },
+    }
+  );
+
+  const scrollToTop = () => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+  };
+
   // Skeleton loaders
   const renderPostSkeletons = (count = 3) => (
     <View style={{ flexDirection: 'row', gap: 16, paddingHorizontal: 8 }}>
@@ -142,6 +162,27 @@ export default function HomeScreen() {
       ))}
     </View>
   );
+
+  const fadeAnimFresh = React.useRef(new Animated.Value(0)).current;
+  const fadeAnimPosts = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(fadeAnimFresh, {
+      toValue: 1,
+      duration: 500,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [freshPosts]);
+
+  React.useEffect(() => {
+    Animated.timing(fadeAnimPosts, {
+      toValue: 1,
+      duration: 500,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [categoryFilteredPosts]);
 
   if (isLoading && page === 1) {
     return (
@@ -189,9 +230,17 @@ export default function HomeScreen() {
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>Opportunities Hub</Text>
       </View>
-      <ScrollView
+      <Animated.ScrollView
+        ref={scrollViewRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         refreshControl={
-          <RefreshControl refreshing={isLoading && page === 1} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={isLoading && page === 1}
+            onRefresh={onRefresh}
+            colors={[Colors.light.tint]}
+            tintColor={Colors.light.tint}
+          />
         }
         contentContainerStyle={{ paddingBottom: 32 }}
       >
@@ -199,15 +248,65 @@ export default function HomeScreen() {
         <View style={styles.sectionHeaderRow}>
           <ThemedText style={styles.sectionTitle}>Fresh Posts</ThemedText>
         </View>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          style={styles.horizontalScroll}
-          contentContainerStyle={{ paddingLeft: 8, paddingRight: 8 }}
-        >
-          {freshPosts?.length === 0 ? (
-            <Text style={{ color: '#888', padding: 16 }}>No fresh posts found.</Text>
-          ) : freshPosts?.map((post: Post) => {
+        <Animated.View style={{ opacity: fadeAnimFresh }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.horizontalScroll}
+            contentContainerStyle={{ paddingLeft: 8, paddingRight: 8 }}
+          >
+            {freshPosts?.length === 0 ? (
+              <View style={styles.emptyStateContainer}>
+                <Text style={{ fontSize: 40, marginBottom: 8 }}>🪁</Text>
+                <Text style={styles.emptyStateText}>No fresh posts found.</Text>
+              </View>
+            ) : freshPosts?.map((post: Post) => {
+              const imageUrl =
+                post._embedded &&
+                post._embedded['wp:featuredmedia'] &&
+                post._embedded['wp:featuredmedia'][0]?.source_url;
+              const date = new Date(post.date).toLocaleDateString();
+              const readLength = getReadLength(post.content.rendered);
+              const category =
+                post._embedded &&
+                post._embedded['wp:term'] &&
+                post._embedded['wp:term'][0] &&
+                post._embedded['wp:term'][0][0]?.name;
+              return (
+                <View key={post.id} style={styles.freshCard}>
+                  {imageUrl ? (
+                    <Image source={{ uri: imageUrl }} style={styles.freshImage} />
+                  ) : (
+                    <Skeleton width={100} height={60} borderRadius={10} style={{ marginBottom: 8 }} />
+                  )}
+                  <View style={styles.freshContent}>
+                    <Text style={styles.freshTitle} numberOfLines={2}>{post.title.rendered}</Text>
+                    <View style={styles.metaRow}>
+                      <Text style={styles.meta}>{date}</Text>
+                      <Text style={styles.meta}>• {readLength} min read</Text>
+                      {category && <Text style={styles.meta}>• {category}</Text>}
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </Animated.View>
+
+        {/* Divider between Fresh Posts and Posts */}
+        <View style={styles.sectionDivider} />
+
+        {/* Posts */}
+        <View style={styles.sectionHeaderRow}>
+          <ThemedText style={styles.sectionTitle}>Posts</ThemedText>
+        </View>
+        <Animated.View style={{ opacity: fadeAnimPosts }}>
+          {categoryFilteredPosts.length === 0 ? (
+            <View style={styles.emptyStateContainer}>
+              <Text style={{ fontSize: 40, marginBottom: 8 }}>📭</Text>
+              <Text style={styles.emptyStateText}>No posts found for this category.</Text>
+            </View>
+          ) : categoryFilteredPosts.map((post: Post) => {
             const imageUrl =
               post._embedded &&
               post._embedded['wp:featuredmedia'] &&
@@ -219,64 +318,23 @@ export default function HomeScreen() {
               post._embedded['wp:term'] &&
               post._embedded['wp:term'][0] &&
               post._embedded['wp:term'][0][0]?.name;
-
             return (
-              <View key={post.id} style={styles.freshCard}>
-                {imageUrl ? (
-                  <Image source={{ uri: imageUrl }} style={styles.freshImage} />
-                ) : (
-                  <Skeleton width={100} height={60} borderRadius={10} style={{ marginBottom: 8 }} />
-                )}
-                <View style={styles.freshContent}>
-                  <Text style={styles.freshTitle} numberOfLines={2}>{post.title.rendered}</Text>
-                  <View style={styles.metaRow}>
-                    <Text style={styles.meta}>{date}</Text>
-                    <Text style={styles.meta}>• {readLength} min read</Text>
-                    {category && <Text style={styles.meta}>• {category}</Text>}
-                  </View>
-                </View>
+              <View key={post.id} style={styles.card}>
+                <Card
+                  id={String(post.id)}
+                  title={post.title.rendered}
+                  description={post.excerpt?.rendered?.replace(/<[^>]+>/g, '') || ''}
+                  imageUrl={imageUrl}
+                  date={date}
+                  author={post._embedded?.author?.[0]?.name}
+                  category={category}
+                  style={styles.card}
+                  imageStyle={styles.cardImage}
+                />
               </View>
             );
           })}
-        </ScrollView>
-
-        {/* Divider between Fresh Posts and Posts */}
-        <View style={styles.sectionDivider} />
-
-        {/* Posts */}
-        <View style={styles.sectionHeaderRow}>
-          <ThemedText style={styles.sectionTitle}>Posts</ThemedText>
-        </View>
-        {categoryFilteredPosts.length === 0 ? (
-          <Text style={{ color: '#888', padding: 16 }}>No posts found for this category.</Text>
-        ) : categoryFilteredPosts.map((post: Post) => {
-          const imageUrl =
-            post._embedded &&
-            post._embedded['wp:featuredmedia'] &&
-            post._embedded['wp:featuredmedia'][0]?.source_url;
-          const date = new Date(post.date).toLocaleDateString();
-          const readLength = getReadLength(post.content.rendered);
-          const category =
-            post._embedded &&
-            post._embedded['wp:term'] &&
-            post._embedded['wp:term'][0] &&
-            post._embedded['wp:term'][0][0]?.name;
-
-          return (
-            <Card
-              key={post.id}
-              id={String(post.id)}
-              title={post.title.rendered}
-              description={post.excerpt?.rendered?.replace(/<[^>]+>/g, '') || ''}
-              imageUrl={imageUrl}
-              date={date}
-              author={post._embedded?.author?.[0]?.name}
-              category={category}
-              style={styles.card}
-              imageStyle={styles.cardImage}
-            />
-          );
-        })}
+        </Animated.View>
         {hasMore && (
           <Pressable onPress={loadMore} style={styles.seeMorePressable} disabled={isLoadingMore}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
@@ -292,22 +350,24 @@ export default function HomeScreen() {
         <View style={styles.sectionHeaderRow}>
           <ThemedText style={styles.sectionTitle}>View By Categories</ThemedText>
         </View>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
           style={styles.horizontalScroll}
           contentContainerStyle={{ paddingLeft: 8, paddingRight: 8 }}
         >
           <TouchableOpacity
             style={[
               styles.categoryChip,
-              selectedCategory === 'all' && styles.selectedCategoryChip
+              selectedCategory === 'all' && styles.selectedCategoryChip,
+              selectedCategory === 'all' && styles.categoryChipActive,
             ]}
             onPress={() => setSelectedCategory('all')}
           >
+            <Ionicons name="grid" size={16} color={selectedCategory === 'all' ? '#fff' : Colors.light.tint} style={{ marginRight: 4 }} />
             <ThemedText style={[
               styles.categoryChipText,
-              selectedCategory === 'all' && styles.selectedCategoryChipText
+              selectedCategory === 'all' && styles.selectedCategoryChipText,
             ]}>All</ThemedText>
           </TouchableOpacity>
           {categories?.map((category: Category) => (
@@ -315,18 +375,25 @@ export default function HomeScreen() {
               key={category.id}
               style={[
                 styles.categoryChip,
-                selectedCategory === category.id && styles.selectedCategoryChip
+                selectedCategory === category.id && styles.selectedCategoryChip,
+                selectedCategory === category.id && styles.categoryChipActive,
               ]}
               onPress={() => setSelectedCategory(category.id)}
             >
+              <Ionicons name="pricetag" size={16} color={selectedCategory === category.id ? '#fff' : Colors.light.tint} style={{ marginRight: 4 }} />
               <ThemedText style={[
                 styles.categoryChipText,
-                selectedCategory === category.id && styles.selectedCategoryChipText
+                selectedCategory === category.id && styles.selectedCategoryChipText,
               ]}>{category.name}</ThemedText>
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </ScrollView>
+      </Animated.ScrollView>
+      {showScrollTop && (
+        <TouchableOpacity style={styles.scrollTopButton} onPress={scrollToTop}>
+          <Ionicons name="arrow-up" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }
@@ -346,6 +413,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
+    shadowColor: '#003366',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
   headerTitle: {
     fontSize: 24,
@@ -468,10 +540,12 @@ const styles = StyleSheet.create({
   categoryChip: {
     backgroundColor: '#E5E8F0',
     borderRadius: 16,
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     marginRight: 8,
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   categoryChipText: {
     fontSize: 14,
@@ -498,5 +572,39 @@ const styles = StyleSheet.create({
   },
   horizontalScroll: {
     marginBottom: 16,
+  },
+  categoryChipActive: {
+    shadowColor: Colors.light.tint,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  emptyStateText: {
+    color: '#888',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  scrollTopButton: {
+    position: 'absolute',
+    right: 24,
+    bottom: 40,
+    backgroundColor: Colors.light.tint,
+    borderRadius: 24,
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#003366',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 100,
   },
 });
