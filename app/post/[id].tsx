@@ -103,12 +103,15 @@ export default function PostScreen() {
         }}
       />
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-        <View style={styles.imageContainer}>
+        {/* Hero Section */}
+        <View style={styles.heroContainer}>
           {imageUrl ? (
-            <Image source={{ uri: imageUrl }} style={styles.wideImage} resizeMode="cover" />
+            <Image source={{ uri: imageUrl }} style={styles.heroImage} resizeMode="cover" />
           ) : (
-            <View style={[styles.wideImage, { backgroundColor: '#E1E9EE', alignItems: 'center', justifyContent: 'center' }]}/>
+            <View style={[styles.heroImage, { backgroundColor: '#E1E9EE', alignItems: 'center', justifyContent: 'center' }]}/>
           )}
+          {/* Gradient overlay */}
+          <View style={styles.heroGradient} />
           {/* Overlayed Buttons */}
           <View style={[styles.overlayButtons, { top: insets.top + 12 }]}> 
             <TouchableOpacity onPress={() => router.back()} style={styles.overlayIconButton}>
@@ -118,9 +121,38 @@ export default function PostScreen() {
               <IconSymbol name="square.and.arrow.up" size={20} color={Colors.light.tint} />
             </TouchableOpacity>
           </View>
+          {/* Layered Title & Key Info */}
+          <View style={styles.heroInfoLayer}>
+            <ThemedText style={styles.heroTitle} numberOfLines={2}>{post.title.rendered}</ThemedText>
+            <View style={styles.heroChipsRow}>
+              {category && (
+                <View style={styles.heroChip}><ThemedText style={styles.heroChipText}>{category}</ThemedText></View>
+              )}
+              {/* Add more chips if you want, e.g. location, tags */}
+            </View>
+          </View>
         </View>
+        {/* Floating Info Card */}
+        <View style={styles.floatingInfoCard}>
+          <View style={styles.infoCardRow}>
+            <View style={styles.infoCardItem}>
+              <IconSymbol name="calendar" size={18} color={Colors.light.tint} />
+              <ThemedText style={styles.infoCardLabel}>Deadline</ThemedText>
+              <ThemedText style={styles.infoCardValue}>{date}</ThemedText>
+            </View>
+            <View style={styles.infoCardItem}>
+              <IconSymbol name="clock" size={18} color={Colors.light.tint} />
+              <ThemedText style={styles.infoCardLabel}>Time Left</ThemedText>
+              <ThemedText style={styles.infoCardValue}>{readTime} min</ThemedText>
+            </View>
+            {/* Add location or other info if available */}
+          </View>
+          <TouchableOpacity style={styles.applyButton}>
+            <ThemedText style={styles.applyButtonText}>Apply Now</ThemedText>
+          </TouchableOpacity>
+        </View>
+        {/* Content Section */}
         <View style={styles.headerContent}>
-          <ThemedText style={styles.title}>{post.title.rendered}</ThemedText>
           <View style={styles.metaRow}>
             {authorAvatar && (
               <Image source={{ uri: authorAvatar }} style={styles.avatar} />
@@ -302,5 +334,104 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 2,
+  },
+  heroContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 260,
+    marginBottom: 0,
+  },
+  heroImage: {
+    width: '100%',
+    height: 260,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  heroGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 100,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  heroInfoLayer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 16,
+    paddingHorizontal: 20,
+    zIndex: 5,
+  },
+  heroTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.25)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  heroChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  heroChip: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 8,
+  },
+  heroChipText: {
+    color: Colors.light.tint,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  floatingInfoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginHorizontal: 20,
+    marginTop: -36,
+    marginBottom: 18,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 3,
+    zIndex: 10,
+  },
+  infoCardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  infoCardItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  infoCardLabel: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 2,
+  },
+  infoCardValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.light.tint,
+    marginTop: 2,
+  },
+  applyButton: {
+    backgroundColor: Colors.light.tint,
+    borderRadius: 16,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 }); 
