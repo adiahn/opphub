@@ -277,7 +277,9 @@ export default function HomeScreen() {
                   {imageUrl ? (
                     <Image source={{ uri: imageUrl }} style={styles.freshImage} />
                   ) : (
-                    <Skeleton width={100} height={60} borderRadius={10} style={{ marginBottom: 8 }} />
+                    <View style={styles.freshImage}>
+                      <Ionicons name="image-outline" size={32} color="#b0b8c1" />
+                    </View>
                   )}
                   <View style={styles.freshContent}>
                     <Text style={styles.freshTitle} numberOfLines={2}>{post.title.rendered}</Text>
@@ -407,17 +409,11 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
     paddingHorizontal: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E8F0',
+    backgroundColor: '#F7F8FA',
+    borderBottomWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
-    shadowColor: '#003366',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
   },
   headerTitle: {
     fontSize: 24,
@@ -476,6 +472,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 8,
     backgroundColor: '#E1E9EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   freshContent: {
     flex: 1,
