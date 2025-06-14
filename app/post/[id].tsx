@@ -3,8 +3,10 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { api, Post } from '@/services/api';
+import { useQuery } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,27 +17,14 @@ export default function PostScreen() {
   const { id } = useLocalSearchParams();
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
-  const [post, setPost] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    fetch(`https://opportunitieshub.ng/wp-json/wp/v2/posts/${id}?_embed`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to fetch post');
-        const data = await res.json();
-        setPost(data);
-      })
-      .catch((err) => {
-        setError('Could not load post.');
-      })
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { data: post, isLoading, isError } = useQuery<Post>({
+    queryKey: ['post', id],
+    queryFn: () => api.getPost(Number(id)),
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+  });
 
   const handleShare = async () => {
     if (!post) return;
@@ -75,7 +64,7 @@ export default function PostScreen() {
     return sections;
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
         <ActivityIndicator size="large" color={Colors.light.tint} />
@@ -83,10 +72,10 @@ export default function PostScreen() {
     );
   }
 
-  if (error || !post) {
+  if (isError || !post) {
     return (
       <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText>{error || 'Post not found'}</ThemedText>
+        <ThemedText>{isError ? 'Error loading post' : 'Post not found'}</ThemedText>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ThemedText style={styles.backButtonText}>Go Back</ThemedText>
         </TouchableOpacity>
@@ -101,6 +90,9 @@ export default function PostScreen() {
   const date = new Date(post.date).toLocaleDateString();
   const category = post._embedded?.['wp:term']?.[0]?.[0]?.name;
   const readTime = Math.max(1, Math.round(post.content.rendered.split(' ').length / 200));
+
+  // Split content into sections
+  const sections = splitHtmlSections(post.content.rendered);
 
   return (
     <>
@@ -150,7 +142,7 @@ export default function PostScreen() {
         <ThemedView style={styles.content}>
           {/* Sectioned Content */}
           <View style={styles.sectionsContainer}>
-            {splitHtmlSections(post.content.rendered).map((section, idx) => (
+            {sections.map((section, idx) => (
               <View key={idx} style={styles.sectionCard}>
                 {section.title && section.title !== 'Details' && (
                   <ThemedText style={styles.sectionTitle}>{section.title}</ThemedText>

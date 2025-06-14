@@ -3,27 +3,41 @@ import { ThemedView } from '@/components/ThemedView';
 import { Card } from '@/components/ui/Card';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useCategories, useFreshPosts, usePosts } from '@/hooks/usePosts';
+import { Category, Post } from '@/services/api';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 1000; // 1 second
-
 export default function HomeScreen() {
-  const [posts, setPosts] = useState<any[]>([]);
-  const [freshPosts, setFreshPosts] = useState<any[]>([]);
-  const [closingSoonPosts, setClosingSoonPosts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | number>('all');
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
+
+  // React Query hooks
+  const { 
+    data: postsData, 
+    isLoading: isLoadingPosts,
+    isError: isPostsError,
+    refetch: refetchPosts
+  } = usePosts(page);
+
+  const {
+    data: freshPosts,
+    isLoading: isLoadingFreshPosts,
+    isError: isFreshPostsError,
+    refetch: refetchFreshPosts
+  } = useFreshPosts();
+
+  const {
+    data: categories,
+    isLoading: isLoadingCategories,
+    isError: isCategoriesError,
+    refetch: refetchCategories
+  } = useCategories();
 
   // Check network status
   useEffect(() => {
@@ -34,47 +48,7 @@ export default function HomeScreen() {
     return () => unsubscribe();
   }, []);
 
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-  const fetchWithRetry = async (url: string, retries = MAX_RETRIES): Promise<Response> => {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response;
-    } catch (error) {
-      if (retries > 0) {
-        await sleep(RETRY_DELAY);
-        return fetchWithRetry(url, retries - 1);
-      }
-      throw error;
-    }
-  };
-
-  // Helper function to check if a post is closing soon (within 3 days)
-  const isClosingSoon = (post: any) => {
-    try {
-      // Try to find deadline in post meta or content
-      const deadlineMatch = post.content.rendered.match(/deadline:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i) ||
-                           post.content.rendered.match(/closing:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i) ||
-                           post.content.rendered.match(/due:?\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
-      
-      if (deadlineMatch) {
-        const deadline = new Date(deadlineMatch[1]);
-        const now = new Date();
-        const diffTime = deadline.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays <= 3;
-      }
-      return false;
-    } catch (error) {
-      console.error('Error checking deadline:', error);
-      return false;
-    }
-  };
-
-  const fetchPosts = async (pageNum = 1, shouldRefresh = false) => {
+  const onRefresh = async () => {
     if (!isOnline) {
       Alert.alert(
         "No Internet Connection",
@@ -82,94 +56,16 @@ export default function HomeScreen() {
       );
       return;
     }
-
-    try {
-      const response = await axios.get(
-        `https://opportunitieshub.ng/wp-json/wp/v2/posts?_embed&per_page=10&page=${pageNum}`
-      );
-      const data = response.data;
-      const totalPages = parseInt(response.headers['x-wp-totalpages'] || '1');
-      setHasMore(pageNum < totalPages);
-      data.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      if (shouldRefresh) {
-        setPosts(data);
-      } else {
-        const newPosts = data.filter((newPost: any) => 
-          !posts.some(existingPost => existingPost.id === newPost.id)
-        );
-        setPosts(prev => [...prev, ...newPosts]);
-      }
-      setPage(pageNum);
-      // Update closing soon posts
-      const closingPosts = data.filter(isClosingSoon);
-      setClosingSoonPosts(prev => {
-        const uniqueClosingPosts = closingPosts.filter((newPost: any) => 
-          !prev.some(existingPost => existingPost.id === newPost.id)
-        );
-        return [...prev, ...uniqueClosingPosts];
-      });
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-      Alert.alert(
-        "Error",
-        "Failed to load posts. Please try again later."
-      );
-    }
-  };
-
-  const fetchFreshPosts = async () => {
-    if (!isOnline) return;
-    try {
-      const response = await axios.get(
-        'https://opportunitieshub.ng/wp-json/wp/v2/posts?_embed&per_page=5'
-      );
-      const data = response.data;
-      data.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setFreshPosts(data);
-    } catch (error) {
-      console.error('Error fetching fresh posts:', error);
-    }
-  };
-
-  const fetchCategories = async () => {
-    if (!isOnline) return;
-    try {
-      const response = await axios.get(
-        'https://opportunitieshub.ng/wp-json/wp/v2/categories?per_page=100'
-      );
-      setCategories(response.data);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchPosts(1, true);
-    fetchFreshPosts();
-    fetchCategories();
-    const interval = setInterval(() => {
-      fetchPosts(1, true);
-      fetchFreshPosts();
-      fetchCategories();
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
     await Promise.all([
-      fetchPosts(1, true),
-      fetchFreshPosts(),
-      fetchCategories()
+      refetchPosts(),
+      refetchFreshPosts(),
+      refetchCategories()
     ]);
-    setRefreshing(false);
   };
 
-  const loadMore = async () => {
-    if (hasMore && !refreshing && !loadingMore) {
-      setLoadingMore(true);
-      await fetchPosts(page + 1);
-      setLoadingMore(false);
+  const loadMore = () => {
+    if (postsData?.totalPages && page < postsData.totalPages) {
+      setPage(prev => prev + 1);
     }
   };
 
@@ -178,37 +74,57 @@ export default function HomeScreen() {
     return Math.max(1, Math.round(words / 200));
   };
 
-  const filteredPosts = posts.filter(post => 
-    !freshPosts.some(freshPost => freshPost.id === post.id)
-  );
+  const filteredPosts = postsData?.data.filter((post: Post) => 
+    !freshPosts?.some((freshPost: Post) => freshPost.id === post.id)
+  ) || [];
+
+  // Filter posts by selected category
+  const categoryFilteredPosts = selectedCategory === 'all'
+    ? filteredPosts
+    : filteredPosts.filter((post: Post) => {
+        const postCategories = post._embedded?.['wp:term']?.[0]?.map((cat: any) => cat.id) || [];
+        return postCategories.includes(selectedCategory);
+      });
+
+  const isLoading = isLoadingPosts || isLoadingFreshPosts || isLoadingCategories;
+  const hasError = isPostsError || isFreshPostsError || isCategoriesError;
+
+  if (isLoading) {
+    return (
+      <ThemedView style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={Colors.light.tint} />
+      </ThemedView>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <ThemedView style={[styles.container, styles.centered]}>
+        <ThemedText>Error loading content. Please try again.</ThemedText>
+        <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
+          <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+        </TouchableOpacity>
+      </ThemedView>
+    );
+  }
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView edges={['top']} style={styles.safeHeader}>
-        <ThemedText style={styles.headerTitle}>Opportunities Hub</ThemedText>
-      </SafeAreaView>
-      {!isOnline && (
-        <View style={styles.offlineBanner}>
-          <Text style={styles.offlineText}>No Internet Connection</Text>
-        </View>
-      )}
+    <SafeAreaView style={styles.container}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
         }
       >
-        {/* Fresh Opportunities */}
+        {/* Fresh Posts */}
         <View style={styles.sectionHeaderRow}>
-          <ThemedText style={styles.sectionTitle}>Fresh Opportunities</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Fresh Posts</ThemedText>
         </View>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
           style={styles.horizontalScroll}
         >
-          {freshPosts.map(post => {
+          {freshPosts?.map((post: Post) => {
             const imageUrl =
               post._embedded &&
               post._embedded['wp:featuredmedia'] &&
@@ -241,56 +157,11 @@ export default function HomeScreen() {
 
         <View style={styles.separator} />
 
-        {/* Closing Soon */}
-        {closingSoonPosts.length > 0 && (
-          <>
-            <View style={styles.sectionHeaderRow}>
-              <ThemedText style={styles.sectionTitle}>Closing Soon</ThemedText>
-            </View>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              style={styles.horizontalScroll}
-            >
-              {closingSoonPosts.map(post => {
-                const imageUrl =
-                  post._embedded &&
-                  post._embedded['wp:featuredmedia'] &&
-                  post._embedded['wp:featuredmedia'][0]?.source_url;
-                const date = new Date(post.date).toLocaleDateString();
-                const readLength = getReadLength(post.content.rendered);
-                const category =
-                  post._embedded &&
-                  post._embedded['wp:term'] &&
-                  post._embedded['wp:term'][0] &&
-                  post._embedded['wp:term'][0][0]?.name;
-
-                return (
-                  <View key={post.id} style={styles.freshCard}>
-                    {imageUrl && (
-                      <Image source={{ uri: imageUrl }} style={styles.freshImage} />
-                    )}
-                    <View style={styles.freshContent}>
-                      <Text style={styles.freshTitle} numberOfLines={2}>{post.title.rendered}</Text>
-                      <View style={styles.metaRow}>
-                        <Text style={styles.meta}>{date}</Text>
-                        <Text style={styles.meta}>• {readLength} min read</Text>
-                        {category && <Text style={styles.meta}>• {category}</Text>}
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-            <View style={styles.separator} />
-          </>
-        )}
-
         {/* Posts */}
         <View style={styles.sectionHeaderRow}>
           <ThemedText style={styles.sectionTitle}>Posts</ThemedText>
         </View>
-        {filteredPosts.map(post => {
+        {categoryFilteredPosts.map((post: Post) => {
           const imageUrl =
             post._embedded &&
             post._embedded['wp:featuredmedia'] &&
@@ -318,13 +189,13 @@ export default function HomeScreen() {
             />
           );
         })}
-        {hasMore && (
+        {postsData?.totalPages && page < postsData.totalPages && (
           <TouchableOpacity 
             style={styles.seeMoreButton} 
             onPress={loadMore}
-            disabled={loadingMore}
+            disabled={isLoadingPosts}
           >
-            {loadingMore ? (
+            {isLoadingPosts ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color={Colors.light.tint} />
                 <ThemedText style={[styles.seeMoreText, styles.loadingText]}>Loading...</ThemedText>
@@ -346,17 +217,36 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false} 
           style={styles.horizontalScroll}
         >
-          {categories.map(category => (
-            <TouchableOpacity 
-              key={category.id} 
-              style={styles.categoryPill}
+          <TouchableOpacity
+            style={[
+              styles.categoryChip,
+              selectedCategory === 'all' && styles.selectedCategoryChip
+            ]}
+            onPress={() => setSelectedCategory('all')}
+          >
+            <ThemedText style={[
+              styles.categoryChipText,
+              selectedCategory === 'all' && styles.selectedCategoryChipText
+            ]}>All</ThemedText>
+          </TouchableOpacity>
+          {categories?.map((category: Category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={[
+                styles.categoryChip,
+                selectedCategory === category.id && styles.selectedCategoryChip
+              ]}
+              onPress={() => setSelectedCategory(category.id)}
             >
-              <ThemedText style={styles.categoryPillText}>{category.name}</ThemedText>
+              <ThemedText style={[
+                styles.categoryChipText,
+                selectedCategory === category.id && styles.selectedCategoryChipText
+              ]}>{category.name}</ThemedText>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </ScrollView>
-    </ThemedView>
+    </SafeAreaView>
   );
 }
 
@@ -476,7 +366,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginRight: 8,
   },
-  categoryPill: {
+  categoryChip: {
     backgroundColor: '#E5E8F0',
     borderRadius: 20,
     paddingHorizontal: 18,
@@ -485,10 +375,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
-  categoryPillText: {
+  categoryChipText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#3A3A3A',
+  },
+  selectedCategoryChip: {
+    backgroundColor: Colors.light.tint,
+  },
+  selectedCategoryChipText: {
+    color: '#fff',
+    fontWeight: '700',
   },
   offlineBanner: {
     backgroundColor: '#ff6b6b',
@@ -499,5 +396,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  retryButton: {
+    padding: 12,
+    backgroundColor: Colors.light.tint,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
