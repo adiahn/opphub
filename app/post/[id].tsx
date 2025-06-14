@@ -103,22 +103,22 @@ export default function PostScreen() {
         }}
       />
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-        {/* Back Arrow */}
-        <View style={[styles.headerRow, { paddingTop: insets.top + 8 }]}> 
-          <TouchableOpacity onPress={() => router.back()} style={styles.backIconButton}>
-            <IconSymbol name="chevron.left" size={28} color={isDark ? Colors.dark.text : Colors.light.text} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
-            <IconSymbol
-              name="square.and.arrow.up"
-              size={24}
-              color={isDark ? Colors.dark.text : Colors.light.text}
-            />
-          </TouchableOpacity>
+        <View style={styles.imageContainer}>
+          {imageUrl ? (
+            <Image source={{ uri: imageUrl }} style={styles.wideImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.wideImage, { backgroundColor: '#E1E9EE', alignItems: 'center', justifyContent: 'center' }]}/>
+          )}
+          {/* Overlayed Buttons */}
+          <View style={[styles.overlayButtons, { top: insets.top + 12 }]}> 
+            <TouchableOpacity onPress={() => router.back()} style={styles.overlayIconButton}>
+              <IconSymbol name="chevron.left" size={24} color={Colors.light.tint} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleShare} style={styles.overlayIconButton}>
+              <IconSymbol name="square.and.arrow.up" size={20} color={Colors.light.tint} />
+            </TouchableOpacity>
+          </View>
         </View>
-        {imageUrl && (
-          <Image source={{ uri: imageUrl }} style={styles.wideImage} resizeMode="cover" />
-        )}
         <View style={styles.headerContent}>
           <ThemedText style={styles.title}>{post.title.rendered}</ThemedText>
           <View style={styles.metaRow}>
@@ -177,6 +177,9 @@ const styles = StyleSheet.create({
   centered: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  imageContainer: {
+    position: 'relative',
   },
   image: {
     width: '100%',
@@ -262,10 +265,10 @@ const styles = StyleSheet.create({
   },
   wideImage: {
     width: '100%',
-    height: 320,
+    height: 260,
     backgroundColor: '#eee',
-    borderRadius: 18,
-    marginBottom: 18,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   headerContent: {
     paddingHorizontal: 18,
@@ -277,5 +280,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e5e5',
     marginHorizontal: 18,
     marginBottom: 18,
+  },
+  overlayButtons: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    zIndex: 10,
+  },
+  overlayIconButton: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2,
   },
 }); 
