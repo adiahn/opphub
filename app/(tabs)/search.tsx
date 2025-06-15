@@ -1,10 +1,9 @@
-import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { SearchBar } from '@/components/ui/SearchBar';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo, useState } from 'react';
+import { Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Mock data for demonstration
 const CATEGORIES = [
@@ -18,58 +17,115 @@ const CATEGORIES = [
   'Entertainment',
 ];
 
+// Mock search results
+const MOCK_RESULTS = [
+  'UX podcast',
+  'UX research mx',
+  'UX total',
+  'UX friends',
+  'UX nights podcast',
+  'AI suave',
+  'UX & growth podcast',
+  'UX discovery session... by gerard dolan',
+];
+
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [isFocused, setIsFocused] = useState(false);
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
 
+  // Filter results based on search query and category
+  const filteredResults = useMemo(() => {
+    if (!searchQuery) return [];
+    return MOCK_RESULTS.filter(item =>
+      item.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (selectedCategory === 'All' || item.toLowerCase().includes(selectedCategory.toLowerCase()))
+    );
+  }, [searchQuery, selectedCategory]);
+
+  const handleCancel = () => {
+    setSearchQuery('');
+    setIsFocused(false);
+    Keyboard.dismiss();
+  };
+
   return (
     <ThemedView style={styles.container}>
-      <ThemedView style={styles.header}>
-        <ThemedText style={styles.title}>Search</ThemedText>
-      </ThemedView>
-
-      <SearchBar
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        placeholder="Search posts..."
-        style={styles.searchBar}
-      />
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        {CATEGORIES.map((category) => (
-          <ThemedView
-            key={category}
-            style={[
-              styles.categoryChip,
-              selectedCategory === category && {
-                backgroundColor: isDark ? Colors.dark.tint : Colors.light.tint,
-              },
-            ]}
-          >
-            <ThemedText
+      {/* Sticky Search Bar */}
+      <View style={styles.stickySearchBar}>
+        <View style={styles.searchBarContainer}>
+          <Ionicons name="search" size={20} color="#888" style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search posts..."
+            placeholderTextColor="#888"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#888" style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+        {/* Filter Chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoriesContainer}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          {CATEGORIES.map((category) => (
+            <TouchableOpacity
+              key={category}
               style={[
-                styles.categoryText,
+                styles.categoryChip,
                 selectedCategory === category && {
-                  color: '#FFFFFF',
+                  backgroundColor: isDark ? Colors.dark.tint : Colors.light.tint,
                 },
               ]}
+              onPress={() => setSelectedCategory(category)}
+              activeOpacity={0.8}
             >
-              {category}
-            </ThemedText>
-          </ThemedView>
-        ))}
-      </ScrollView>
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === category && {
+                    color: '#FFFFFF',
+                  },
+                ]}
+              >
+                {category}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
-      <ScrollView style={styles.content}>
-        <ThemedText style={styles.sectionTitle}>Recent Searches</ThemedText>
-        {/* Add recent searches list here */}
+      {/* Results List */}
+      <ScrollView style={styles.resultsContainer} keyboardShouldPersistTaps="handled">
+        {searchQuery.length === 0 && !isFocused ? (
+          <Text style={styles.sectionTitle}>Recent Searches</Text>
+        ) : filteredResults.length === 0 ? (
+          <Text style={styles.noResultsText}>No results found.</Text>
+        ) : (
+          filteredResults.map((result, idx) => (
+            <TouchableOpacity key={idx} style={styles.resultItem}>
+              <Ionicons name="search" size={18} color={Colors.light.tint} style={{ marginRight: 10 }} />
+              <Text style={styles.resultText}>{result}</Text>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </ThemedView>
   );
@@ -78,43 +134,85 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
-  header: {
-    padding: 16,
-    paddingTop: 60,
+  stickySearchBar: {
+    backgroundColor: '#fff',
+    paddingTop: 48,
+    paddingBottom: 8,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    zIndex: 10,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 8,
   },
-  searchBar: {
-    marginHorizontal: 16,
-    marginBottom: 16,
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#222',
+    paddingVertical: 4,
+  },
+  cancelButton: {
+    marginLeft: 8,
+  },
+  cancelText: {
+    color: Colors.light.tint,
+    fontWeight: '600',
+    fontSize: 16,
   },
   categoriesContainer: {
-    marginBottom: 16,
+    marginBottom: 2,
   },
   categoriesContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
   },
   categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    marginRight: 6,
+    marginBottom: 4,
     backgroundColor: '#F2F2F7',
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
   },
-  content: {
+  resultsContainer: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+  },
+  resultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingHorizontal: 8,
+  },
+  resultText: {
+    fontSize: 16,
+    color: '#222',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
+    color: '#222',
+  },
+  noResultsText: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 32,
   },
 }); 

@@ -6,7 +6,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { api, Post } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useRef } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ export default function PostScreen() {
   const isDark = theme === 'dark';
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const { data: post, isLoading, isError } = useQuery<Post>({
     queryKey: ['post', id],
@@ -102,7 +103,11 @@ export default function PostScreen() {
           headerTransparent: true,
         }}
       />
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 32 }}
+      >
         {/* Hero Section */}
         <View style={styles.heroContainer}>
           {imageUrl ? (
@@ -147,7 +152,10 @@ export default function PostScreen() {
             </View>
             {/* Add location or other info if available */}
           </View>
-          <TouchableOpacity style={styles.applyButton}>
+          <TouchableOpacity
+            style={styles.applyButton}
+            onPress={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+          >
             <ThemedText style={styles.applyButtonText}>Apply Now</ThemedText>
           </TouchableOpacity>
         </View>
