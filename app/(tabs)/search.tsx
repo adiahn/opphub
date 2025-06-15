@@ -1,11 +1,12 @@
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { usePosts } from '@/hooks/usePosts';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-// Mock data for demonstration
 const CATEGORIES = [
   'All',
   'Technology',
@@ -17,33 +18,32 @@ const CATEGORIES = [
   'Entertainment',
 ];
 
-// Mock search results
-const MOCK_RESULTS = [
-  'UX podcast',
-  'UX research mx',
-  'UX total',
-  'UX friends',
-  'UX nights podcast',
-  'AI suave',
-  'UX & growth podcast',
-  'UX discovery session... by gerard dolan',
-];
-
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isFocused, setIsFocused] = useState(false);
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
+  const router = useRouter();
 
-  // Filter results based on search query and category
+  // Fetch all posts (first 10 pages for demo, or use a custom hook for all posts)
+  const { data: postsData, isLoading } = usePosts(1);
+  const allPosts = postsData?.data || [];
+
+  // Filter posts based on search query and category
   const filteredResults = useMemo(() => {
     if (!searchQuery) return [];
-    return MOCK_RESULTS.filter(item =>
-      item.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (selectedCategory === 'All' || item.toLowerCase().includes(selectedCategory.toLowerCase()))
-    );
-  }, [searchQuery, selectedCategory]);
+    return allPosts.filter(post => {
+      const title = post.title.rendered.toLowerCase();
+      const content = post.content.rendered.toLowerCase();
+      const matchesQuery =
+        title.includes(searchQuery.toLowerCase()) ||
+        content.includes(searchQuery.toLowerCase());
+      if (selectedCategory === 'All') return matchesQuery;
+      const postCategories = post._embedded?.['wp:term']?.[0]?.map((cat: any) => cat.name.toLowerCase()) || [];
+      return matchesQuery && postCategories.includes(selectedCategory.toLowerCase());
+    });
+  }, [searchQuery, selectedCategory, allPosts]);
 
   const handleCancel = () => {
     setSearchQuery('');
@@ -114,15 +114,21 @@ export default function SearchScreen() {
 
       {/* Results List */}
       <ScrollView style={styles.resultsContainer} keyboardShouldPersistTaps="handled">
-        {searchQuery.length === 0 && !isFocused ? (
+        {isLoading ? (
+          <Text style={styles.noResultsText}>Loading...</Text>
+        ) : searchQuery.length === 0 && !isFocused ? (
           <Text style={styles.sectionTitle}>Recent Searches</Text>
         ) : filteredResults.length === 0 ? (
           <Text style={styles.noResultsText}>No results found.</Text>
         ) : (
-          filteredResults.map((result, idx) => (
-            <TouchableOpacity key={idx} style={styles.resultItem}>
+          filteredResults.map((post, idx) => (
+            <TouchableOpacity
+              key={post.id}
+              style={styles.resultItem}
+              onPress={() => router.push(`/post/${post.id}`)}
+            >
               <Ionicons name="search" size={18} color={Colors.light.tint} style={{ marginRight: 10 }} />
-              <Text style={styles.resultText}>{result}</Text>
+              <Text style={styles.resultText}>{post.title.rendered}</Text>
             </TouchableOpacity>
           ))
         )}
