@@ -8,6 +8,7 @@ import { useCategories, useFreshPosts, usePosts } from '@/hooks/usePosts';
 import { Category, Post } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Easing, Image, NativeScrollEvent, NativeSyntheticEvent, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -184,6 +185,8 @@ export default function HomeScreen() {
     }).start();
   }, [categoryFilteredPosts]);
 
+  const router = useRouter();
+
   if (isLoading && page === 1) {
     return (
       <SafeAreaView style={styles.container}>
@@ -311,7 +314,12 @@ export default function HomeScreen() {
                 post._embedded['wp:term'][0] &&
                 post._embedded['wp:term'][0][0]?.name;
               return (
-                <View key={post.id} style={styles.freshCard}>
+                <TouchableOpacity
+                  key={post.id}
+                  style={styles.freshCard}
+                  onPress={() => router.push(`/post/${post.id}`)}
+                  activeOpacity={0.85}
+                >
                   {imageUrl ? (
                     <Image source={{ uri: imageUrl }} style={styles.freshImage} />
                   ) : (
@@ -327,7 +335,7 @@ export default function HomeScreen() {
                       {category && <Text style={styles.meta}>• {category}</Text>}
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
           </ScrollView>
