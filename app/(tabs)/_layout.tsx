@@ -60,9 +60,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="favourites"
         options={{
-          title: 'Favourites',
+          title: 'Community',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="heart.fill" color={color} focused={focused} />
+            <TabBarIcon name="person.3.fill" color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="person.fill" color={color} focused={focused} />
           ),
         }}
       />
