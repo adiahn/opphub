@@ -215,7 +215,7 @@ export default function HomeScreen() {
             colors={isDark ? ['#1a1a1a', '#2a2a2a'] : ['#f8f9fa', '#e9ecef']}
             style={styles.headerGradient}
           >
-            <Text style={styles.headerTitle}>Opportunities Hub</Text>
+            <Text style={styles.headerTitle}>Circle</Text>
           </LinearGradient>
         </View>
         <ScrollView
@@ -269,7 +269,7 @@ export default function HomeScreen() {
           colors={isDark ? ['#1a1a1a', '#2a2a2a'] : ['#f8f9fa', '#e9ecef']}
           style={styles.headerGradient}
         >
-          <Text style={styles.headerTitle}>Opportunities Hub</Text>
+          <Text style={styles.headerTitle}>Circle</Text>
         </LinearGradient>
       </View>
       <Animated.ScrollView
@@ -376,13 +376,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
   },
   headerGradient: {
-    paddingTop: 60,
+    paddingTop: 16,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
+    textAlign: 'center',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
