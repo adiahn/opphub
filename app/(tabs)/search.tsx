@@ -22,6 +22,7 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isFocused, setIsFocused] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
   const router = useRouter();
@@ -51,6 +52,32 @@ export default function SearchScreen() {
     Keyboard.dismiss();
   };
 
+  const addRecentSearch = (query: string) => {
+    if (!query.trim()) return;
+    setRecentSearches(prev => {
+      const filtered = prev.filter(item => item.toLowerCase() !== query.toLowerCase());
+      return [query, ...filtered].slice(0, 8); // keep max 8
+    });
+  };
+
+  const handleResultPress = (post: any) => {
+    addRecentSearch(searchQuery);
+    router.push(`/post/${post.id}`);
+  };
+
+  const handleRecentSearchPress = (query: string) => {
+    setSearchQuery(query);
+    setIsFocused(true);
+  };
+
+  const handleSearchSubmit = () => {
+    addRecentSearch(searchQuery);
+    setIsFocused(false);
+    Keyboard.dismiss();
+  };
+
+  const handleClearRecent = () => setRecentSearches([]);
+
   return (
     <ThemedView style={styles.container}>
       {/* Sticky Search Bar */}
@@ -68,6 +95,7 @@ export default function SearchScreen() {
             returnKeyType="search"
             autoCorrect={false}
             autoCapitalize="none"
+            onSubmitEditing={handleSearchSubmit}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -117,7 +145,30 @@ export default function SearchScreen() {
         {isLoading ? (
           <Text style={styles.noResultsText}>Loading...</Text>
         ) : searchQuery.length === 0 && !isFocused ? (
-          <Text style={styles.sectionTitle}>Recent Searches</Text>
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <Text style={styles.sectionTitle}>Recent Searches</Text>
+              {recentSearches.length > 0 && (
+                <TouchableOpacity onPress={handleClearRecent}>
+                  <Ionicons name="trash" size={18} color="#888" />
+                </TouchableOpacity>
+              )}
+            </View>
+            {recentSearches.length === 0 ? (
+              <Text style={styles.noResultsText}>No recent searches.</Text>
+            ) : (
+              recentSearches.map((query, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.resultItem}
+                  onPress={() => handleRecentSearchPress(query)}
+                >
+                  <Ionicons name="time" size={18} color={Colors.light.tint} style={{ marginRight: 10 }} />
+                  <Text style={styles.resultText}>{query}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </>
         ) : filteredResults.length === 0 ? (
           <Text style={styles.noResultsText}>No results found.</Text>
         ) : (
@@ -125,7 +176,7 @@ export default function SearchScreen() {
             <TouchableOpacity
               key={post.id}
               style={styles.resultItem}
-              onPress={() => router.push(`/post/${post.id}`)}
+              onPress={() => handleResultPress(post)}
             >
               <Ionicons name="search" size={18} color={Colors.light.tint} style={{ marginRight: 10 }} />
               <Text style={styles.resultText}>{post.title.rendered}</Text>
