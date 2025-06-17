@@ -42,7 +42,7 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
           <View style={styles.profileInfo}>
-            <ThemedText style={styles.name}>John Doe</ThemedText>
+            <ThemedText style={styles.name}>Adnan Mukhtar</ThemedText>
             <ThemedText style={styles.bio}>Software Engineer | React Native Developer</ThemedText>
             <TouchableOpacity 
               style={styles.editProfileButton}
