@@ -1,19 +1,88 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useCategories, useFreshPosts, usePosts } from '@/hooks/usePosts';
-import { Category, Post } from '@/services/api';
+import { Post } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Easing, Image, NativeScrollEvent, NativeSyntheticEvent, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, Image, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+const { width } = Dimensions.get('window');
 const POSTS_PER_PAGE = 10;
+
+const CategoryPill = ({ category, isSelected, onPress }: { category: { id: 'all' | number; name: string }; isSelected: boolean; onPress: () => void }) => (
+  <TouchableOpacity
+    style={[styles.categoryPill, isSelected && styles.categoryPillSelected]}
+    onPress={onPress}
+  >
+    <ThemedText style={[styles.categoryText, isSelected && styles.categoryTextSelected]}>
+      {category.name}
+    </ThemedText>
+  </TouchableOpacity>
+);
+
+const PostCard = ({ post, onPress }: { post: Post; onPress: () => void }) => {
+  const theme = useColorScheme() ?? 'light';
+  const isDark = theme === 'dark';
+  const readLength = Math.max(1, Math.round(post.content.rendered.replace(/<[^>]+>/g, '').split(/\s+/).length / 200));
+
+  return (
+    <TouchableOpacity style={styles.postCard} onPress={onPress}>
+      <Image
+        source={{ uri: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://via.placeholder.com/400x200' }}
+        style={styles.postImage}
+      />
+      <View style={styles.postContent}>
+        <ThemedText style={styles.postTitle} numberOfLines={2}>
+          {post.title.rendered}
+        </ThemedText>
+        <View style={styles.postMeta}>
+          <View style={styles.postMetaItem}>
+            <Ionicons name="time-outline" size={14} color={isDark ? '#999' : '#666'} />
+            <ThemedText style={styles.postMetaText}>{readLength} min read</ThemedText>
+          </View>
+          <View style={styles.postMetaItem}>
+            <Ionicons name="calendar-outline" size={14} color={isDark ? '#999' : '#666'} />
+            <ThemedText style={styles.postMetaText}>
+              {new Date(post.date).toLocaleDateString()}
+            </ThemedText>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const FreshPostCard = ({ post, onPress }: { post: Post; onPress: () => void }) => {
+  const theme = useColorScheme() ?? 'light';
+  const isDark = theme === 'dark';
+
+  return (
+    <TouchableOpacity style={styles.freshPostCard} onPress={onPress}>
+      <Image
+        source={{ uri: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://via.placeholder.com/200x200' }}
+        style={styles.freshPostImage}
+      />
+      <View style={styles.freshPostContent}>
+        <ThemedText style={styles.freshPostTitle} numberOfLines={2}>
+          {post.title.rendered}
+        </ThemedText>
+        <View style={styles.freshPostMeta}>
+          <Ionicons name="time-outline" size={12} color={isDark ? '#999' : '#666'} />
+          <ThemedText style={styles.freshPostMetaText}>
+            {new Date(post.date).toLocaleDateString()}
+          </ThemedText>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 export default function HomeScreen() {
   const [selectedCategory, setSelectedCategory] = useState<'all' | number>('all');
@@ -64,7 +133,6 @@ export default function HomeScreen() {
       setHasMore(page < postsData.totalPages);
     } else if (postsData && page > 1) {
       setAllPosts(prev => {
-        // Avoid duplicates
         const newPosts = postsData.data.filter(
           (p) => !prev.some((existing) => existing.id === p.id)
         );
@@ -105,16 +173,10 @@ export default function HomeScreen() {
     }
   }, [postsData, page, pendingPage]);
 
-  const getReadLength = (content: string) => {
-    const words = content.replace(/<[^>]+>/g, '').split(/\s+/).length;
-    return Math.max(1, Math.round(words / 200));
-  };
-
   const filteredPosts = allPosts.filter((post: Post) => 
     !freshPosts?.some((freshPost: Post) => freshPost.id === post.id)
   );
 
-  // Filter posts by selected category
   const categoryFilteredPosts = selectedCategory === 'all'
     ? filteredPosts
     : filteredPosts.filter((post: Post) => {
@@ -143,55 +205,18 @@ export default function HomeScreen() {
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
 
-  // Skeleton loaders
-  const renderPostSkeletons = (count = 3) => (
-    <View style={{ flexDirection: 'row', gap: 16, paddingHorizontal: 8 }}>
-      {[...Array(count)].map((_, i) => (
-        <View key={i} style={styles.freshCard}>
-          <Skeleton width={100} height={60} borderRadius={10} style={{ marginBottom: 8 }} />
-          <Skeleton width={80} height={14} borderRadius={6} style={{ marginBottom: 4 }} />
-          <Skeleton width={50} height={10} borderRadius={5} />
-        </View>
-      ))}
-    </View>
-  );
-
-  const renderCategorySkeletons = (count = 6) => (
-    <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 8 }}>
-      {[...Array(count)].map((_, i) => (
-        <Skeleton key={i} width={70} height={32} borderRadius={16} />
-      ))}
-    </View>
-  );
-
-  const fadeAnimFresh = React.useRef(new Animated.Value(0)).current;
-  const fadeAnimPosts = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    Animated.timing(fadeAnimFresh, {
-      toValue: 1,
-      duration: 500,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    }).start();
-  }, [freshPosts]);
-
-  React.useEffect(() => {
-    Animated.timing(fadeAnimPosts, {
-      toValue: 1,
-      duration: 500,
-      easing: Easing.out(Easing.ease),
-      useNativeDriver: true,
-    }).start();
-  }, [categoryFilteredPosts]);
-
   const router = useRouter();
 
   if (isLoading && page === 1) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Opportunities Hub</Text>
+          <LinearGradient
+            colors={isDark ? ['#1a1a1a', '#2a2a2a'] : ['#f8f9fa', '#e9ecef']}
+            style={styles.headerGradient}
+          >
+            <Text style={styles.headerTitle}>Opportunities Hub</Text>
+          </LinearGradient>
         </View>
         <ScrollView
           refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} />}
@@ -199,14 +224,26 @@ export default function HomeScreen() {
           <View style={styles.sectionHeaderRow}>
             <ThemedText style={styles.sectionTitle}>Fresh Posts</ThemedText>
           </View>
-          {renderPostSkeletons(3)}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.freshPostsScroll}>
+            {[...Array(3)].map((_, i) => (
+              <View key={i} style={styles.freshPostCard}>
+                <Skeleton width={150} height={100} borderRadius={12} style={{ marginBottom: 8 }} />
+                <Skeleton width={120} height={16} borderRadius={8} style={{ marginBottom: 4 }} />
+                <Skeleton width={80} height={12} borderRadius={6} />
+              </View>
+            ))}
+          </ScrollView>
           <View style={styles.sectionDivider} />
           <View style={styles.sectionHeaderRow}>
-            <ThemedText style={styles.sectionTitle}>Posts</ThemedText>
+            <ThemedText style={styles.sectionTitle}>Latest Posts</ThemedText>
           </View>
-          {renderPostSkeletons(4)}
-          <View style={styles.separator} />
-          {renderCategorySkeletons(6)}
+          {[...Array(3)].map((_, i) => (
+            <View key={i} style={styles.postCard}>
+              <Skeleton width="100%" height={200} borderRadius={12} style={{ marginBottom: 12 }} />
+              <Skeleton width="80%" height={20} borderRadius={10} style={{ marginBottom: 8 }} />
+              <Skeleton width="40%" height={16} borderRadius={8} />
+            </View>
+          ))}
         </ScrollView>
       </SafeAreaView>
     );
@@ -228,7 +265,12 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Opportunities Hub</Text>
+        <LinearGradient
+          colors={isDark ? ['#1a1a1a', '#2a2a2a'] : ['#f8f9fa', '#e9ecef']}
+          style={styles.headerGradient}
+        >
+          <Text style={styles.headerTitle}>Opportunities Hub</Text>
+        </LinearGradient>
       </View>
       <Animated.ScrollView
         ref={scrollViewRef}
@@ -244,150 +286,78 @@ export default function HomeScreen() {
         }
         contentContainerStyle={{ paddingBottom: 32 }}
       >
+        {freshPosts && freshPosts.length > 0 && (
+          <>
+            <View style={styles.sectionHeaderRow}>
+              <ThemedText style={styles.sectionTitle}>Fresh Posts</ThemedText>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.freshPostsScroll}
+              contentContainerStyle={styles.freshPostsContent}
+            >
+              {freshPosts.map((post) => (
+                <FreshPostCard
+                  key={post.id}
+                  post={post}
+                  onPress={() => router.push(`/post/${post.id}`)}
+                />
+              ))}
+            </ScrollView>
+            <View style={styles.sectionDivider} />
+          </>
+        )}
+
         <View style={styles.categoriesHeaderRow}>
-          <Text style={styles.categoriesHeader}>Filters</Text>
+          <ThemedText style={styles.categoriesHeader}>Categories</ThemedText>
         </View>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={styles.horizontalScroll}
-          contentContainerStyle={{ paddingLeft: 4, paddingRight: 4 }}
+          style={styles.categoriesScroll}
+          contentContainerStyle={styles.categoriesContent}
         >
-          <TouchableOpacity
-            style={[
-              styles.categoryChip,
-              selectedCategory === 'all' && styles.selectedCategoryChip,
-              selectedCategory === 'all' && styles.categoryChipActive,
-            ]}
+          <CategoryPill
+            category={{ id: 'all', name: 'All' }}
+            isSelected={selectedCategory === 'all'}
             onPress={() => setSelectedCategory('all')}
-          >
-            <Ionicons name="grid" size={14} color={selectedCategory === 'all' ? '#fff' : Colors.light.tint} style={{ marginRight: 2 }} />
-            <ThemedText style={[
-              styles.categoryChipText,
-              selectedCategory === 'all' && styles.selectedCategoryChipText,
-            ]}>All</ThemedText>
-          </TouchableOpacity>
-          {categories?.map((category: Category) => (
-            <TouchableOpacity
+          />
+          {categories?.map((category) => (
+            <CategoryPill
               key={category.id}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category.id && styles.selectedCategoryChip,
-                selectedCategory === category.id && styles.categoryChipActive,
-              ]}
+              category={category}
+              isSelected={selectedCategory === category.id}
               onPress={() => setSelectedCategory(category.id)}
-            >
-              <Ionicons name="pricetag" size={14} color={selectedCategory === category.id ? '#fff' : Colors.light.tint} style={{ marginRight: 2 }} />
-              <ThemedText style={[
-                styles.categoryChipText,
-                selectedCategory === category.id && styles.selectedCategoryChipText,
-              ]}>{category.name}</ThemedText>
-            </TouchableOpacity>
+            />
           ))}
         </ScrollView>
-        <View style={styles.sectionDivider} />
+
         <View style={styles.sectionHeaderRow}>
-          <ThemedText style={styles.sectionTitle}>Featured Posts</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Latest Posts</ThemedText>
         </View>
-        <Animated.View style={{ opacity: fadeAnimFresh }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.horizontalScroll}
-            contentContainerStyle={{ paddingLeft: 8, paddingRight: 8 }}
-          >
-            {freshPosts?.length === 0 ? (
-              <View style={styles.emptyStateContainer}>
-                <Text style={{ fontSize: 40, marginBottom: 8 }}>🪁</Text>
-                <Text style={styles.emptyStateText}>No fresh posts found.</Text>
-              </View>
-            ) : freshPosts?.map((post: Post) => {
-              const imageUrl =
-                post._embedded &&
-                post._embedded['wp:featuredmedia'] &&
-                post._embedded['wp:featuredmedia'][0]?.source_url;
-              const date = new Date(post.date).toLocaleDateString();
-              const readLength = getReadLength(post.content.rendered);
-              const category =
-                post._embedded &&
-                post._embedded['wp:term'] &&
-                post._embedded['wp:term'][0] &&
-                post._embedded['wp:term'][0][0]?.name;
-              return (
-                <TouchableOpacity
-                  key={post.id}
-                  style={styles.freshCard}
-                  onPress={() => router.push(`/post/${post.id}`)}
-                  activeOpacity={0.85}
-                >
-                  {imageUrl ? (
-                    <Image source={{ uri: imageUrl }} style={styles.freshImage} />
-                  ) : (
-                    <View style={styles.freshImage}>
-                      <Ionicons name="image-outline" size={32} color="#b0b8c1" />
-                    </View>
-                  )}
-                  <View style={styles.freshContent}>
-                    <Text style={styles.freshTitle} numberOfLines={2}>{post.title.rendered}</Text>
-                    <View style={styles.metaRow}>
-                      <Text style={styles.meta}>{date}</Text>
-                      <Text style={styles.meta}>• {readLength} min read</Text>
-                      {category && <Text style={styles.meta}>• {category}</Text>}
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </Animated.View>
-        <View style={styles.sectionDivider} />
-        <View style={styles.sectionHeaderRow}>
-          <ThemedText style={styles.sectionTitle}>Posts</ThemedText>
-        </View>
-        <Animated.View style={{ opacity: fadeAnimPosts }}>
-          {categoryFilteredPosts.length === 0 ? (
-            <View style={styles.emptyStateContainer}>
-              <Text style={{ fontSize: 40, marginBottom: 8 }}>📭</Text>
-              <Text style={styles.emptyStateText}>No posts found for this category.</Text>
-            </View>
-          ) : categoryFilteredPosts.map((post: Post) => {
-            const imageUrl =
-              post._embedded &&
-              post._embedded['wp:featuredmedia'] &&
-              post._embedded['wp:featuredmedia'][0]?.source_url;
-            const date = new Date(post.date).toLocaleDateString();
-            const readLength = getReadLength(post.content.rendered);
-            const category =
-              post._embedded &&
-              post._embedded['wp:term'] &&
-              post._embedded['wp:term'][0] &&
-              post._embedded['wp:term'][0][0]?.name;
-            return (
-              <View key={post.id} style={styles.card}>
-                <Card
-                  id={String(post.id)}
-                  title={post.title.rendered}
-                  description={post.excerpt?.rendered?.replace(/<[^>]+>/g, '') || ''}
-                  imageUrl={imageUrl}
-                  date={date}
-                  author={post._embedded?.author?.[0]?.name}
-                  category={category}
-                  style={styles.card}
-                  imageStyle={styles.cardImage}
-                />
-              </View>
-            );
-          })}
-        </Animated.View>
-        {hasMore && (
-          <Pressable onPress={loadMore} style={styles.seeMorePressable} disabled={isLoadingMore}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={styles.seeMoreTextLink}>See more</Text>
-              {isLoadingMore && <ActivityIndicator size="small" color={Colors.light.tint} style={{ marginLeft: 8 }} />}
-            </View>
-          </Pressable>
+
+        {categoryFilteredPosts.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            onPress={() => router.push(`/post/${post.id}`)}
+          />
+        ))}
+
+        {isLoadingMore && (
+          <View style={styles.loadingMore}>
+            <ActivityIndicator color={Colors.light.tint} />
+          </View>
+        )}
+
+        {!isLoadingMore && hasMore && (
+          <TouchableOpacity style={styles.loadMoreButton} onPress={loadMore}>
+            <ThemedText style={styles.loadMoreText}>Load More</ThemedText>
+          </TouchableOpacity>
         )}
       </Animated.ScrollView>
+
       {showScrollTop && (
         <TouchableOpacity style={styles.scrollTopButton} onPress={scrollToTop}>
           <Ionicons name="arrow-up" size={24} color="#fff" />
@@ -400,221 +370,188 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F8FA',
   },
   headerContainer: {
-    paddingTop: 16,
-    paddingBottom: 8,
-    paddingHorizontal: 20,
-    backgroundColor: '#F7F8FA',
-    borderBottomWidth: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.light.tint,
-    letterSpacing: 1,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontSize: 28,
+    fontWeight: '700',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
     marginTop: 24,
-    marginBottom: 8,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#222',
+    fontSize: 20,
+    fontWeight: '600',
   },
   sectionDivider: {
-    height: 1.5,
-    backgroundColor: Colors.light.tint,
-    marginVertical: 5,
-    marginHorizontal: 20,
-    borderRadius: 1,
-    opacity: 0.18,
-  },
-  separator: {
     height: 1,
-    backgroundColor: '#E5E8F0',
-    marginVertical: 12,
-    marginHorizontal: 16,
-    borderRadius: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    marginVertical: 24,
   },
-  freshCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
+  freshPostsScroll: {
+    marginLeft: 16,
+  },
+  freshPostsContent: {
+    paddingRight: 16,
+  },
+  freshPostCard: {
+    width: 150,
     marginRight: 12,
-    marginBottom: 8,
-    padding: 10,
-    width: 120,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  freshImage: {
-    width: 100,
-    height: 60,
-    borderRadius: 10,
+  freshPostImage: {
+    width: 150,
+    height: 100,
+    borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: '#E1E9EE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
   },
-  freshContent: {
+  freshPostContent: {
     flex: 1,
   },
-  freshTitle: {
+  freshPostTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#222',
     marginBottom: 4,
   },
-  metaRow: {
+  freshPostMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
   },
-  meta: {
-    fontSize: 11,
-    color: '#888',
-    marginRight: 6,
+  freshPostMetaText: {
+    fontSize: 12,
+    marginLeft: 4,
+    opacity: 0.6,
   },
-  card: {
+  categoriesHeaderRow: {
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  categoriesHeader: {
+    fontSize: 16,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+  categoriesScroll: {
+    marginLeft: 16,
+  },
+  categoriesContent: {
+    paddingRight: 16,
+  },
+  categoryPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    marginRight: 8,
+  },
+  categoryPillSelected: {
+    backgroundColor: Colors.light.tint,
+  },
+  categoryText: {
+    fontSize: 14,
+    color: Colors.light.tint,
+  },
+  categoryTextSelected: {
+    color: '#fff',
+  },
+  postCard: {
     marginHorizontal: 16,
-    marginBottom: 14,
+    marginBottom: 24,
     borderRadius: 12,
     backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
-    padding: 0,
+    elevation: 3,
   },
-  cardImage: {
+  postImage: {
+    width: '100%',
+    height: 200,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
-    height: 110,
-    backgroundColor: '#E1E9EE',
   },
-  seeMorePressable: {
-    alignItems: 'center',
-    marginVertical: 8,
+  postContent: {
+    padding: 16,
   },
-  seeMoreTextLink: {
-    color: Colors.light.tint,
-    fontWeight: '700',
-    fontSize: 16,
-    textDecorationLine: 'underline',
-    letterSpacing: 0.2,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingText: {
-    marginLeft: 8,
-  },
-  categoryChip: {
-    backgroundColor: '#E5E8F0',
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginRight: 6,
-    marginBottom: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  categoryChipText: {
-    fontSize: 12,
+  postTitle: {
+    fontSize: 18,
     fontWeight: '600',
-    color: '#3A3A3A',
+    marginBottom: 12,
   },
-  selectedCategoryChip: {
-    backgroundColor: Colors.light.tint,
-  },
-  selectedCategoryChipText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
-  retryButton: {
-    padding: 12,
-    backgroundColor: Colors.light.tint,
-    borderRadius: 8,
+  postMeta: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  retryButtonText: {
+  postMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  postMetaText: {
     fontSize: 14,
-    color: '#fff',
-    fontWeight: '600',
+    marginLeft: 4,
+    opacity: 0.6,
   },
-  horizontalScroll: {
-    marginBottom: 16,
-    marginTop: 2,
-  },
-  categoryChipActive: {
-    shadowColor: Colors.light.tint,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  emptyStateContainer: {
+  loadingMore: {
+    padding: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
   },
-  emptyStateText: {
-    color: '#888',
+  loadMoreButton: {
+    marginHorizontal: 16,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    alignItems: 'center',
+  },
+  loadMoreText: {
     fontSize: 16,
-    textAlign: 'center',
+    fontWeight: '600',
+    color: Colors.light.tint,
   },
   scrollTopButton: {
     position: 'absolute',
-    right: 24,
-    bottom: 40,
+    right: 16,
+    bottom: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.light.tint,
-    borderRadius: 24,
-    width: 48,
-    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#003366',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
     elevation: 4,
-    zIndex: 100,
   },
-  categoriesHeaderRow: {
-    flexDirection: 'row',
+  centered: {
+    flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 8,
-    marginTop: 10,
-    marginBottom: 4,
+    justifyContent: 'center',
+    padding: 16,
   },
-  categoriesHeader: {
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+    backgroundColor: Colors.light.tint,
+  },
+  retryButtonText: {
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1a2a3a',
-    letterSpacing: 0.2,
+    fontWeight: '600',
   },
 });
