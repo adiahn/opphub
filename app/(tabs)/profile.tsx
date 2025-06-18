@@ -4,10 +4,18 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import React, { useEffect, useState } from 'react';
+import { Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
+
+interface UserProfile {
+  name: string;
+  bio: string;
+  location: string;
+  stars: number;
+}
 
 const QuickAction = ({ icon, title, onPress }: { icon: string; title: string; onPress: () => void }) => (
   <TouchableOpacity style={styles.quickAction} onPress={onPress}>
@@ -22,6 +30,36 @@ export default function ProfileScreen() {
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
 
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const token = await SecureStore.getItemAsync('userToken');
+        if (!token) throw new Error('No token found');
+        const response = await fetch('https://oppotunitieshubbackend.onrender.com/api/profile/basic', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        setProfile(data);
+      } catch (e) {
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  function getInitials(name: string) {
+    if (!name) return '';
+    return name.split(' ').map((n: string) => n[0]).join('').toUpperCase();
+  }
+
   return (
     <ScrollView style={styles.container} bounces={false}>
       <LinearGradient
@@ -33,17 +71,32 @@ export default function ProfileScreen() {
             style={styles.profileImageContainer}
             onPress={() => router.push('/profile/edit')}
           >
-            <Image
-              source={{ uri: 'https://via.placeholder.com/150' }}
-              style={styles.profileImage}
-            />
+            <View style={styles.initialsCircle}>
+              <ThemedText style={styles.initialsText}>
+                {profile ? getInitials(profile.name) : ''}
+              </ThemedText>
+            </View>
             <View style={styles.editOverlay}>
               <IconSymbol name="camera.fill" size={20} color="#fff" />
             </View>
           </TouchableOpacity>
           <View style={styles.profileInfo}>
-            <ThemedText style={styles.name}>Adnan Mukhtar</ThemedText>
-            <ThemedText style={styles.bio}>Software Engineer | React Native Developer</ThemedText>
+            {loading ? (
+              <ThemedText style={styles.name}>Loading...</ThemedText>
+            ) : profile ? (
+              <>
+                <ThemedText style={styles.name}>{profile.name}</ThemedText>
+                {profile.bio && <ThemedText style={styles.bio}>{profile.bio}</ThemedText>}
+                {profile.location && (
+                  <ThemedText style={styles.location}>{profile.location}</ThemedText>
+                )}
+                <View style={styles.levelBadge}>
+                  <ThemedText style={styles.levelText}>Level {profile.stars}</ThemedText>
+                </View>
+              </>
+            ) : (
+              <ThemedText style={styles.name}>Profile not found</ThemedText>
+            )}
             <TouchableOpacity 
               style={styles.editProfileButton}
               onPress={() => router.push('/profile/edit')}
@@ -55,46 +108,6 @@ export default function ProfileScreen() {
       </LinearGradient>
 
       <View style={styles.content}>
-        <View style={styles.quickActions}>
-          <QuickAction 
-            icon="heart.fill" 
-            title="Favorites" 
-            onPress={() => router.push('/(tabs)/favourites')} 
-          />
-          <QuickAction 
-            icon="person.2.fill" 
-            title="Connections" 
-            onPress={() => console.log('Connections')} 
-          />
-          <QuickAction 
-            icon="bell.fill" 
-            title="Notifications" 
-            onPress={() => console.log('Notifications')} 
-          />
-          <QuickAction 
-            icon="gear" 
-            title="Settings" 
-            onPress={() => console.log('Settings')} 
-          />
-        </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <ThemedText style={styles.statNumber}>245</ThemedText>
-            <ThemedText style={styles.statLabel}>Connections</ThemedText>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <ThemedText style={styles.statNumber}>12</ThemedText>
-            <ThemedText style={styles.statLabel}>Projects</ThemedText>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <ThemedText style={styles.statNumber}>89</ThemedText>
-            <ThemedText style={styles.statLabel}>Favorites</ThemedText>
-          </View>
-        </View>
-
         <TouchableOpacity style={styles.logoutButton}>
           <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="#FF3B30" />
           <ThemedText style={styles.logoutText}>Log Out</ThemedText>
@@ -154,6 +167,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
+  location: {
+    fontSize: 15,
+    color: '#888',
+    marginBottom: 8,
+  },
   editProfileButton: {
     paddingHorizontal: 20,
     paddingVertical: 8,
@@ -168,52 +186,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  quickAction: {
-    alignItems: 'center',
-    width: (width - 40) / 4,
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  quickActionTitle: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(0, 122, 255, 0.05)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    opacity: 0.8,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-  },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -227,5 +199,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  initialsCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: Colors.light.tint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  initialsText: {
+    color: '#fff',
+    fontSize: 48,
+    fontWeight: '700',
+  },
+  levelBadge: {
+    backgroundColor: Colors.light.tint,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  levelText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
 }); 

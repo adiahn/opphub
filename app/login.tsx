@@ -1,6 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -47,9 +48,9 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store the token and user info securely (implement SecureStore or AsyncStorage as needed)
-        // await SecureStore.setItemAsync('userToken', data.token);
-        // await SecureStore.setItemAsync('userInfo', JSON.stringify(data.user));
+        // Store the token and user info securely
+        await SecureStore.setItemAsync('userToken', data.token);
+        await SecureStore.setItemAsync('userInfo', JSON.stringify(data.user));
         router.replace('/(tabs)/home');
       } else {
         // Show error message from API if available
