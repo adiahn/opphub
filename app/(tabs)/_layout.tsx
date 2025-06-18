@@ -75,15 +75,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="more"
-        options={{
-          title: 'More',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name="grid-view" color={color} focused={focused} />
-          ),
-        }}
-      />
     </Tabs>
   );
 }
