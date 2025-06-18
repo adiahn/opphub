@@ -10,7 +10,7 @@ import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Dimensions, Image, Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Dimensions, Image, Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -281,22 +281,10 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerRow}>
         <Ionicons name="ellipse-outline" size={32} color="#4a90e2" style={styles.logoIcon} />
-        <View style={styles.searchBarContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={18} color="#b0b4bb" style={{ marginRight: 6 }} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search posts..."
-              placeholderTextColor="#b0b4bb"
-              value={search}
-              onChangeText={setSearch}
-              returnKeyType="search"
-            />
-          </View>
-          <TouchableOpacity style={styles.filterBtn} onPress={() => setFilterModalVisible(true)}>
-            <Ionicons name="filter" size={22} color="#4a90e2" />
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.corporateTitle}>Circle</Text>
+        <TouchableOpacity style={styles.filterBtn} onPress={() => setFilterModalVisible(true)}>
+          <Ionicons name="filter" size={22} color="#4a90e2" />
+        </TouchableOpacity>
       </View>
       <Animated.ScrollView
         ref={scrollViewRef}
@@ -546,30 +534,6 @@ const styles = StyleSheet.create({
   logoIcon: {
     marginRight: 12,
   },
-  searchBarContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    height: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    color: '#222',
-  },
   filterBtn: {
     marginLeft: 10,
     backgroundColor: '#f8fafd',
@@ -655,5 +619,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 4,
     opacity: 0.6,
+  },
+  corporateTitle: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#4a90e2',
+    letterSpacing: 1,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    marginLeft: 4,
+    marginRight: 'auto',
+    alignSelf: 'center',
   },
 });
