@@ -280,10 +280,10 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerRow}>
-        <Ionicons name="ellipse-outline" size={32} color="#4a90e2" style={styles.logoIcon} />
-        <Text style={styles.corporateTitle}>Circle</Text>
+        <Ionicons name="ellipse-outline" size={32} color={Colors.light.tint} style={styles.logoIcon} />
+        <Text style={[styles.corporateTitle, { color: Colors.light.tint }]}>Circle</Text>
         <TouchableOpacity style={styles.filterBtn} onPress={() => setFilterModalVisible(true)}>
-          <Ionicons name="filter" size={22} color="#4a90e2" />
+          <Ionicons name="filter" size={22} color={Colors.light.tint} />
         </TouchableOpacity>
       </View>
       <Animated.ScrollView

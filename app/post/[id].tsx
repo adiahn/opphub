@@ -101,6 +101,16 @@ export default function PostScreen() {
         options={{
           title: '',
           headerTransparent: true,
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={styles.overlayIconButton}>
+              <IconSymbol name="chevron.left" size={24} color={Colors.light.tint} />
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity onPress={handleShare} style={styles.overlayIconButton}>
+              <IconSymbol name="square.and.arrow.up" size={20} color={Colors.light.tint} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <ScrollView
@@ -117,15 +127,6 @@ export default function PostScreen() {
           )}
           {/* Gradient overlay */}
           <View style={styles.heroGradient} />
-          {/* Overlayed Buttons */}
-          <View style={[styles.overlayButtons, { top: insets.top + 12 }]}> 
-            <TouchableOpacity onPress={() => router.back()} style={styles.overlayIconButton}>
-              <IconSymbol name="chevron.left" size={24} color={Colors.light.tint} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleShare} style={styles.overlayIconButton}>
-              <IconSymbol name="square.and.arrow.up" size={20} color={Colors.light.tint} />
-            </TouchableOpacity>
-          </View>
           {/* Layered Title & Key Info */}
           <View style={styles.heroInfoLayer}>
             <ThemedText style={styles.heroTitle} numberOfLines={2}>{post.title.rendered}</ThemedText>

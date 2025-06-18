@@ -3,15 +3,31 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { SkillLevel } from '@/types/user';
+import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, Dimensions, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const ProfileSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const { width } = Dimensions.get('window');
+
+const ProfileSection = ({ title, children, isComplete }: { title: string; children: React.ReactNode; isComplete: boolean }) => (
   <View style={styles.section}>
-    <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+    <View style={styles.sectionHeader}>
+      <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+      {isComplete ? (
+        <View style={styles.completeBadge}>
+          <Ionicons name="checkmark-circle" size={20} color="#27ae60" />
+          <ThemedText style={styles.completeBadgeText}>Complete</ThemedText>
+        </View>
+      ) : (
+        <View style={styles.incompleteBadge}>
+          <Ionicons name="time" size={20} color="#f39c12" />
+          <ThemedText style={styles.incompleteBadgeText}>In Progress</ThemedText>
+        </View>
+      )}
+    </View>
     <View style={styles.sectionContent}>{children}</View>
   </View>
 );
@@ -21,6 +37,7 @@ const SKILL_LEVELS: SkillLevel[] = ['Beginner', 'Intermediate', 'Advanced', 'Exp
 export default function EditProfileScreen() {
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
+  const insets = useSafeAreaInsets();
   
   // Basic Information
   const [name, setName] = useState('John Doe');
@@ -74,41 +91,24 @@ export default function EditProfileScreen() {
     url: ''
   }]);
 
-  // Education
-  const [education, setEducation] = useState<{
-    institution: string;
-    degree: string;
-    fieldOfStudy: string;
-    startDate: Date;
-    endDate?: Date;
-    isOngoing: boolean;
-    description: string;
-  }[]>([{
-    institution: '',
-    degree: '',
-    fieldOfStudy: '',
-    startDate: new Date(),
-    endDate: undefined,
-    isOngoing: false,
-    description: ''
-  }]);
+  // Calculate completion status
+  const completionStatus = useMemo(() => {
+    return {
+      basic: !!name && !!email && !!bio,
+      contact: !!location && (!!phone || !!contactEmail),
+      professional: !!website || !!github || !!linkedin,
+      skills: skills.some(skill => !!skill.name && !!skill.level),
+      projects: projects.some(project => !!project.title && !!project.description),
+      achievements: achievements.some(achievement => !!achievement.title)
+    };
+  }, [name, email, bio, location, phone, contactEmail, website, github, linkedin, skills, projects, achievements]);
 
-  // Work Experience
-  const [workExperience, setWorkExperience] = useState<{
-    company: string;
-    position: string;
-    startDate: Date;
-    endDate?: Date;
-    isOngoing: boolean;
-    description: string;
-  }[]>([{
-    company: '',
-    position: '',
-    startDate: new Date(),
-    endDate: undefined,
-    isOngoing: false,
-    description: ''
-  }]);
+  // Calculate overall progress
+  const overallProgress = useMemo(() => {
+    const total = Object.keys(completionStatus).length;
+    const completed = Object.values(completionStatus).filter(Boolean).length;
+    return Math.round((completed / total) * 100);
+  }, [completionStatus]);
 
   // Add/Remove handlers for arrays
   const addItem = (
@@ -173,32 +173,23 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
     >
-      <LinearGradient
-        colors={isDark ? ['#1a1a1a', '#2a2a2a'] : ['#f8f9fa', '#e9ecef']}
-        style={styles.header}
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 20 }}
       >
-        <View style={styles.headerContent}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <IconSymbol name="chevron.left" size={24} color={isDark ? '#fff' : '#000'} />
-          </TouchableOpacity>
-          <ThemedText style={styles.headerTitle}>Edit Profile</ThemedText>
-          <TouchableOpacity 
-            style={styles.saveButton}
-            onPress={handleSave}
-          >
-            <ThemedText style={styles.saveButtonText}>Save</ThemedText>
-          </TouchableOpacity>
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${overallProgress}%` }]} />
+          </View>
+          <ThemedText style={styles.progressText}>{overallProgress}% Complete</ThemedText>
+          <ThemedText style={styles.progressSubtext}>Complete your profile to stand out in the community</ThemedText>
         </View>
-      </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.profileImageSection}>
           <TouchableOpacity style={styles.profileImageContainer}>
             <Image
@@ -212,7 +203,7 @@ export default function EditProfileScreen() {
           <ThemedText style={styles.changePhotoText}>Change Photo</ThemedText>
         </View>
 
-        <ProfileSection title="Basic Information">
+        <ProfileSection title="Basic Information" isComplete={completionStatus.basic}>
           <View style={styles.inputGroup}>
             <ThemedText style={styles.inputLabel}>Full Name *</ThemedText>
             <TextInput
@@ -249,7 +240,7 @@ export default function EditProfileScreen() {
           </View>
         </ProfileSection>
 
-        <ProfileSection title="Contact Information">
+        <ProfileSection title="Contact Information" isComplete={completionStatus.contact}>
           <View style={styles.inputGroup}>
             <ThemedText style={styles.inputLabel}>Location</ThemedText>
             <TextInput
@@ -285,7 +276,7 @@ export default function EditProfileScreen() {
           </View>
         </ProfileSection>
 
-        <ProfileSection title="Professional Links">
+        <ProfileSection title="Professional Links" isComplete={completionStatus.professional}>
           <View style={styles.inputGroup}>
             <ThemedText style={styles.inputLabel}>Website</ThemedText>
             <TextInput
@@ -321,7 +312,7 @@ export default function EditProfileScreen() {
           </View>
         </ProfileSection>
 
-        <ProfileSection title="Skills">
+        <ProfileSection title="Skills" isComplete={completionStatus.skills}>
           {skills.map((skill, index) => (
             <View key={index} style={styles.skillContainer}>
               <View style={styles.skillHeader}>
@@ -381,7 +372,7 @@ export default function EditProfileScreen() {
           </TouchableOpacity>
         </ProfileSection>
 
-        <ProfileSection title="Projects">
+        <ProfileSection title="Projects" isComplete={completionStatus.projects}>
           {projects.map((project, index) => (
             <View key={index} style={styles.sectionItem}>
               <View style={styles.sectionItemHeader}>
@@ -488,7 +479,7 @@ export default function EditProfileScreen() {
           </TouchableOpacity>
         </ProfileSection>
 
-        <ProfileSection title="Achievements">
+        <ProfileSection title="Achievements" isComplete={completionStatus.achievements}>
           {achievements.map((achievement, index) => (
             <View key={index} style={styles.sectionItem}>
               <View style={styles.sectionItemHeader}>
@@ -571,206 +562,14 @@ export default function EditProfileScreen() {
           </TouchableOpacity>
         </ProfileSection>
 
-        <ProfileSection title="Education">
-          {education.map((edu, index) => (
-            <View key={index} style={styles.sectionItem}>
-              <View style={styles.sectionItemHeader}>
-                <ThemedText style={styles.sectionItemTitle}>Education {index + 1}</ThemedText>
-                {index > 0 && (
-                  <TouchableOpacity 
-                    style={styles.removeButton} 
-                    onPress={() => removeItem(education, setEducation, index)}
-                  >
-                    <IconSymbol name="minus.circle.fill" size={24} color="#FF3B30" />
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Institution *</ThemedText>
-                <TextInput
-                  style={[styles.input, isDark && styles.inputDark]}
-                  placeholder="Enter institution name"
-                  placeholderTextColor={isDark ? '#666' : '#999'}
-                  value={edu.institution}
-                  onChangeText={(value) => updateItem(education, setEducation, index, 'institution', value)}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Degree *</ThemedText>
-                <TextInput
-                  style={[styles.input, isDark && styles.inputDark]}
-                  placeholder="Enter degree"
-                  placeholderTextColor={isDark ? '#666' : '#999'}
-                  value={edu.degree}
-                  onChangeText={(value) => updateItem(education, setEducation, index, 'degree', value)}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Field of Study</ThemedText>
-                <TextInput
-                  style={[styles.input, isDark && styles.inputDark]}
-                  placeholder="Enter field of study"
-                  placeholderTextColor={isDark ? '#666' : '#999'}
-                  value={edu.fieldOfStudy}
-                  onChangeText={(value) => updateItem(education, setEducation, index, 'fieldOfStudy', value)}
-                />
-              </View>
-              <View style={styles.dateContainer}>
-                <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                  <ThemedText style={styles.inputLabel}>Start Date *</ThemedText>
-                  <TouchableOpacity
-                    style={[styles.input, isDark && styles.inputDark]}
-                    onPress={() => {/* TODO: Show date picker */}}
-                  >
-                    <ThemedText>{edu.startDate.toLocaleDateString()}</ThemedText>
-                  </TouchableOpacity>
-                </View>
-                {!edu.isOngoing && (
-                  <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                    <ThemedText style={styles.inputLabel}>End Date</ThemedText>
-                    <TouchableOpacity
-                      style={[styles.input, isDark && styles.inputDark]}
-                      onPress={() => {/* TODO: Show date picker */}}
-                    >
-                      <ThemedText>{edu.endDate?.toLocaleDateString() || 'Select date'}</ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-              <View style={styles.checkboxContainer}>
-                <TouchableOpacity
-                  style={styles.checkbox}
-                  onPress={() => updateItem(education, setEducation, index, 'isOngoing', !edu.isOngoing)}
-                >
-                  {edu.isOngoing && <IconSymbol name="checkmark" size={16} color={Colors.light.tint} />}
-                </TouchableOpacity>
-                <ThemedText style={styles.checkboxLabel}>Currently studying</ThemedText>
-              </View>
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Description</ThemedText>
-                <TextInput
-                  style={[styles.input, styles.textArea, isDark && styles.inputDark]}
-                  placeholder="Enter additional details"
-                  placeholderTextColor={isDark ? '#666' : '#999'}
-                  multiline
-                  numberOfLines={4}
-                  value={edu.description}
-                  onChangeText={(value) => updateItem(education, setEducation, index, 'description', value)}
-                />
-              </View>
-            </View>
-          ))}
+        <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
           <TouchableOpacity 
-            style={styles.addButton}
-            onPress={() => addItem(education, setEducation, {
-              institution: '',
-              degree: '',
-              fieldOfStudy: '',
-              startDate: new Date(),
-              endDate: undefined,
-              isOngoing: false,
-              description: ''
-            })}
+            style={styles.saveProfileButton}
+            onPress={handleSave}
           >
-            <IconSymbol name="plus.circle.fill" size={24} color={Colors.light.tint} />
-            <ThemedText style={styles.addButtonText}>Add Education</ThemedText>
+            <ThemedText style={styles.saveProfileButtonText}>Save Profile</ThemedText>
           </TouchableOpacity>
-        </ProfileSection>
-
-        <ProfileSection title="Work Experience">
-          {workExperience.map((exp, index) => (
-            <View key={index} style={styles.sectionItem}>
-              <View style={styles.sectionItemHeader}>
-                <ThemedText style={styles.sectionItemTitle}>Experience {index + 1}</ThemedText>
-                {index > 0 && (
-                  <TouchableOpacity 
-                    style={styles.removeButton} 
-                    onPress={() => removeItem(workExperience, setWorkExperience, index)}
-                  >
-                    <IconSymbol name="minus.circle.fill" size={24} color="#FF3B30" />
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Company *</ThemedText>
-                <TextInput
-                  style={[styles.input, isDark && styles.inputDark]}
-                  placeholder="Enter company name"
-                  placeholderTextColor={isDark ? '#666' : '#999'}
-                  value={exp.company}
-                  onChangeText={(value) => updateItem(workExperience, setWorkExperience, index, 'company', value)}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Position *</ThemedText>
-                <TextInput
-                  style={[styles.input, isDark && styles.inputDark]}
-                  placeholder="Enter position/title"
-                  placeholderTextColor={isDark ? '#666' : '#999'}
-                  value={exp.position}
-                  onChangeText={(value) => updateItem(workExperience, setWorkExperience, index, 'position', value)}
-                />
-              </View>
-              <View style={styles.dateContainer}>
-                <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-                  <ThemedText style={styles.inputLabel}>Start Date *</ThemedText>
-                  <TouchableOpacity
-                    style={[styles.input, isDark && styles.inputDark]}
-                    onPress={() => {/* TODO: Show date picker */}}
-                  >
-                    <ThemedText>{exp.startDate.toLocaleDateString()}</ThemedText>
-                  </TouchableOpacity>
-                </View>
-                {!exp.isOngoing && (
-                  <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-                    <ThemedText style={styles.inputLabel}>End Date</ThemedText>
-                    <TouchableOpacity
-                      style={[styles.input, isDark && styles.inputDark]}
-                      onPress={() => {/* TODO: Show date picker */}}
-                    >
-                      <ThemedText>{exp.endDate?.toLocaleDateString() || 'Select date'}</ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-              <View style={styles.checkboxContainer}>
-                <TouchableOpacity
-                  style={styles.checkbox}
-                  onPress={() => updateItem(workExperience, setWorkExperience, index, 'isOngoing', !exp.isOngoing)}
-                >
-                  {exp.isOngoing && <IconSymbol name="checkmark" size={16} color={Colors.light.tint} />}
-                </TouchableOpacity>
-                <ThemedText style={styles.checkboxLabel}>Currently working here</ThemedText>
-              </View>
-              <View style={styles.inputGroup}>
-                <ThemedText style={styles.inputLabel}>Description</ThemedText>
-                <TextInput
-                  style={[styles.input, styles.textArea, isDark && styles.inputDark]}
-                  placeholder="Enter job description"
-                  placeholderTextColor={isDark ? '#666' : '#999'}
-                  multiline
-                  numberOfLines={4}
-                  value={exp.description}
-                  onChangeText={(value) => updateItem(workExperience, setWorkExperience, index, 'description', value)}
-                />
-              </View>
-            </View>
-          ))}
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={() => addItem(workExperience, setWorkExperience, {
-              company: '',
-              position: '',
-              startDate: new Date(),
-              endDate: undefined,
-              isOngoing: false,
-              description: ''
-            })}
-          >
-            <IconSymbol name="plus.circle.fill" size={24} color={Colors.light.tint} />
-            <ThemedText style={styles.addButtonText}>Add Work Experience</ThemedText>
-          </TouchableOpacity>
-        </ProfileSection>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -779,45 +578,43 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 16,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  saveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: Colors.light.tint,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    backgroundColor: '#fff',
   },
   content: {
     flex: 1,
   },
+  progressContainer: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.light.tint,
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 8,
+  },
+  progressSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
   profileImageSection: {
     alignItems: 'center',
-    paddingVertical: 24,
+    marginVertical: 20,
   },
   profileImageContainer: {
     position: 'relative',
-    marginBottom: 12,
   },
   profileImage: {
     width: 120,
@@ -840,42 +637,80 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   changePhotoText: {
+    marginTop: 8,
     fontSize: 14,
     color: Colors.light.tint,
+    fontWeight: '600',
   },
   section: {
     marginBottom: 24,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
+    fontWeight: '700',
+  },
+  completeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#27ae6020',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  completeBadgeText: {
+    color: '#27ae60',
     fontWeight: '600',
-    marginBottom: 16,
+    marginLeft: 4,
+    fontSize: 14,
+  },
+  incompleteBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f39c1220',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  incompleteBadgeText: {
+    color: '#f39c12',
+    fontWeight: '600',
+    marginLeft: 4,
+    fontSize: 14,
   },
   sectionContent: {
-    backgroundColor: 'rgba(0, 122, 255, 0.05)',
-    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderRadius: 16,
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   inputGroup: {
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
+    fontWeight: '600',
     marginBottom: 8,
-    opacity: 0.8,
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   inputDark: {
     backgroundColor: '#2a2a2a',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
     color: '#fff',
   },
   textArea: {
@@ -972,5 +807,24 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 14,
     marginLeft: 8,
+  },
+  footer: {
+    paddingHorizontal: 20,
+  },
+  saveProfileButton: {
+    backgroundColor: Colors.light.tint,
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: Colors.light.tint,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveProfileButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
   },
 }); 
