@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { Dimensions, FlatList, Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, FlatList, Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -136,6 +136,8 @@ const getUniqueProfessions = (users: typeof MOCK_USERS) => {
   return Array.from(new Set(users.map(u => u.profession)));
 };
 
+const isCurrentUser = (id: string) => id === CURRENT_USER_ID;
+
 export default function CommunityScreen() {
   const [users, setUsers] = useState(MOCK_USERS);
   const [search, setSearch] = useState('');
@@ -143,14 +145,20 @@ export default function CommunityScreen() {
   const [professionFilter, setProfessionFilter] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<typeof MOCK_USERS[0] | null>(null);
+  const [lastCommitDate, setLastCommitDate] = useState<string | null>(null);
 
-  // Commit logic
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const hasCommittedToday = lastCommitDate === todayStr;
+
   const handleCommit = () => {
+    if (hasCommittedToday) return;
     setUsers((prev) =>
       prev.map((u) =>
         u.id === CURRENT_USER_ID ? { ...u, xp: u.xp + 10 } : u
       )
     );
+    setLastCommitDate(todayStr);
+    Alert.alert('Streak!', 'You\'ve marked today! Come back tomorrow to keep your streak going.');
   };
 
   // Filtering and search
@@ -221,15 +229,19 @@ export default function CommunityScreen() {
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
       />
-      {/* Floating Commit Button (FAB) */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={handleCommit}
-        activeOpacity={0.85}
-      >
-        <Ionicons name="flash" size={22} color="#fff" />
-        <Text style={styles.fabText}>Commit (+10 XP)</Text>
-      </TouchableOpacity>
+      {isCurrentUser(CURRENT_USER_ID) && (
+        <TouchableOpacity
+          style={[styles.fab, hasCommittedToday && styles.fabDisabled]}
+          onPress={handleCommit}
+          activeOpacity={hasCommittedToday ? 1 : 0.85}
+          disabled={hasCommittedToday}
+        >
+          <Ionicons name="flash" size={22} color={hasCommittedToday ? '#b0b8c1' : '#fff'} />
+          <Text style={[styles.fabText, hasCommittedToday && styles.fabTextDisabled]}>
+            {hasCommittedToday ? 'Marked' : 'Commit'}
+          </Text>
+        </TouchableOpacity>
+      )}
       {/* Filter Modal */}
       <Modal
         visible={filterModalVisible}
@@ -450,8 +462,8 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    right: 24,
-    bottom: 32,
+    right: 32,
+    bottom: 120,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#4a90e2',
@@ -679,4 +691,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 17,
   },
+  fabDisabled: {
+    backgroundColor: '#e5e7eb',
+  },
+  fabTextDisabled: {
+    color: '#b0b8c1'
+  }
 }); 
