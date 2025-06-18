@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { Dimensions, FlatList, Image, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -23,7 +23,7 @@ function getLevel(xp: number) {
   return LEVELS[0];
 }
 
-// Mock user data (added age and profession)
+// Mock user data (added age, profession, achievements, projects, education, experience, email)
 const MOCK_USERS = [
   {
     id: '1',
@@ -33,6 +33,19 @@ const MOCK_USERS = [
     age: 28,
     avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
     xp: 120,
+    email: 'ada.lovelace@email.com',
+    achievements: ['Top Backend Dev 2023', 'Hackathon Winner'],
+    projects: [
+      { name: 'Payment API', description: 'Built a scalable payment API for fintech.' },
+      { name: 'Data Pipeline', description: 'Automated ETL for big data.' },
+    ],
+    education: [
+      { school: 'Oxford University', degree: 'BSc Computer Science', year: '2017' },
+    ],
+    experience: [
+      { company: 'FinTech Ltd', role: 'Backend Engineer', years: '2018-2022' },
+      { company: 'DataWorks', role: 'Software Engineer', years: '2022-Present' },
+    ],
   },
   {
     id: '2',
@@ -42,6 +55,17 @@ const MOCK_USERS = [
     age: 35,
     avatar: 'https://randomuser.me/api/portraits/women/65.jpg',
     xp: 60,
+    email: 'grace.hopper@email.com',
+    achievements: ['Automation Guru'],
+    projects: [
+      { name: 'CI/CD Pipeline', description: 'Implemented robust CI/CD for SaaS.' },
+    ],
+    education: [
+      { school: 'Yale University', degree: 'MSc Mathematics', year: '2010' },
+    ],
+    experience: [
+      { company: 'CloudOps', role: 'DevOps Engineer', years: '2015-Present' },
+    ],
   },
   {
     id: '3',
@@ -51,6 +75,17 @@ const MOCK_USERS = [
     age: 41,
     avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
     xp: 350,
+    email: 'alan.turing@email.com',
+    achievements: ['AI Pioneer', 'Published 10+ papers'],
+    projects: [
+      { name: 'Turing Test', description: 'Developed the Turing Test for AI.' },
+    ],
+    education: [
+      { school: 'Cambridge', degree: 'PhD Mathematics', year: '1938' },
+    ],
+    experience: [
+      { company: 'Bletchley Park', role: 'Researcher', years: '1939-1945' },
+    ],
   },
   {
     id: '4',
@@ -60,6 +95,17 @@ const MOCK_USERS = [
     age: 32,
     avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
     xp: 800,
+    email: 'margaret.hamilton@email.com',
+    achievements: ['NASA Award', 'Apollo Guidance Software'],
+    projects: [
+      { name: 'Apollo Guidance', description: 'Led software development for Apollo.' },
+    ],
+    education: [
+      { school: 'MIT', degree: 'BSc Mathematics', year: '1958' },
+    ],
+    experience: [
+      { company: 'NASA', role: 'Lead Developer', years: '1960-1972' },
+    ],
   },
   {
     id: '5',
@@ -69,6 +115,17 @@ const MOCK_USERS = [
     age: 29,
     avatar: 'https://randomuser.me/api/portraits/men/45.jpg',
     xp: 15,
+    email: 'tim.berners-lee@email.com',
+    achievements: ['Invented the Web'],
+    projects: [
+      { name: 'World Wide Web', description: 'Invented the WWW.' },
+    ],
+    education: [
+      { school: 'Oxford', degree: 'Physics', year: '1976' },
+    ],
+    experience: [
+      { company: 'CERN', role: 'Engineer', years: '1980-1989' },
+    ],
   },
   // Add more users as needed
 ];
@@ -85,6 +142,7 @@ export default function CommunityScreen() {
   const [ageFilter, setAgeFilter] = useState('');
   const [professionFilter, setProfessionFilter] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<typeof MOCK_USERS[0] | null>(null);
 
   // Commit logic
   const handleCommit = () => {
@@ -124,14 +182,14 @@ export default function CommunityScreen() {
   const renderUser = ({ item }: { item: typeof MOCK_USERS[0] }) => {
     const level = getLevel(item.xp);
     return (
-      <View style={styles.card}>
+      <TouchableOpacity style={styles.card} onPress={() => setSelectedUser(item)} activeOpacity={0.85}>
         <Image source={{ uri: item.avatar }} style={styles.avatar} />
         <Text style={styles.name}>{item.name}</Text>
         <Text style={styles.skill}>{item.skill}</Text>
         <View style={styles.levelBadge}>
           <Text style={styles.levelName}>{level.name}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -212,6 +270,75 @@ export default function CommunityScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+      {/* User Detail Modal */}
+      <Modal
+        visible={!!selectedUser}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedUser(null)}
+      >
+        <Pressable style={styles.detailOverlay} onPress={() => setSelectedUser(null)} />
+        <View style={styles.detailModal}>
+          {selectedUser && (
+            <>
+              <View style={styles.detailAvatarWrapper}>
+                <Image source={{ uri: selectedUser.avatar }} style={styles.detailAvatar} />
+              </View>
+              {/* Floating X close button */}
+              <TouchableOpacity style={styles.detailCloseIcon} onPress={() => setSelectedUser(null)}>
+                <Ionicons name="close" size={28} color="#222" />
+              </TouchableOpacity>
+              <Text style={styles.detailName}>{selectedUser.name}</Text>
+              <Text style={styles.detailSkill}>{selectedUser.skill}</Text>
+              <View style={styles.detailRow}><Text style={styles.detailLabel}>Profession:</Text><Text style={styles.detailValue}>{selectedUser.profession}</Text></View>
+              <View style={styles.detailRow}><Text style={styles.detailLabel}>Age:</Text><Text style={styles.detailValue}>{selectedUser.age}</Text></View>
+              <View style={styles.detailRow}><Text style={styles.detailLabel}>Level:</Text><Text style={styles.detailValue}>{getLevel(selectedUser.xp).name}</Text></View>
+              <View style={styles.detailRow}><Text style={styles.detailLabel}>XP:</Text><Text style={styles.detailValue}>{selectedUser.xp}</Text></View>
+              {/* Achievements */}
+              {selectedUser.achievements && selectedUser.achievements.length > 0 && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Achievements</Text>
+                  {selectedUser.achievements.map((ach, idx) => (
+                    <Text key={idx} style={styles.detailSectionItem}>• {ach}</Text>
+                  ))}
+                </View>
+              )}
+              {/* Projects */}
+              {selectedUser.projects && selectedUser.projects.length > 0 && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Projects</Text>
+                  {selectedUser.projects.map((proj, idx) => (
+                    <Text key={idx} style={styles.detailSectionItem}>• {proj.name}: {proj.description}</Text>
+                  ))}
+                </View>
+              )}
+              {/* Education */}
+              {selectedUser.education && selectedUser.education.length > 0 && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Education</Text>
+                  {selectedUser.education.map((edu, idx) => (
+                    <Text key={idx} style={styles.detailSectionItem}>• {edu.school}, {edu.degree} ({edu.year})</Text>
+                  ))}
+                </View>
+              )}
+              {/* Experience */}
+              {selectedUser.experience && selectedUser.experience.length > 0 && (
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailSectionTitle}>Experience</Text>
+                  {selectedUser.experience.map((exp, idx) => (
+                    <Text key={idx} style={styles.detailSectionItem}>• {exp.company}, {exp.role} ({exp.years})</Text>
+                  ))}
+                </View>
+              )}
+              {/* Contact Button */}
+              <TouchableOpacity style={styles.detailContactBtn} onPress={() => Linking.openURL(`mailto:${selectedUser.email}`)}>
+                <Ionicons name="mail" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.detailContactBtnText}>Contact</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </Modal>
     </SafeAreaView>
@@ -425,5 +552,131 @@ const styles = StyleSheet.create({
   },
   modalBtnPrimaryText: {
     color: '#fff',
+  },
+  detailOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+  detailModal: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 56,
+    paddingHorizontal: 28,
+    paddingBottom: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 16,
+    elevation: 12,
+    minHeight: 480,
+  },
+  detailAvatarWrapper: {
+    position: 'absolute',
+    top: -48,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  detailAvatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 4,
+    borderColor: '#fff',
+    backgroundColor: '#eee',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  detailCloseIcon: {
+    position: 'absolute',
+    top: 18,
+    right: 18,
+    zIndex: 10,
+    backgroundColor: '#f6f8fa',
+    borderRadius: 18,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  detailName: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#222',
+    marginTop: 56,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  detailSkill: {
+    fontSize: 17,
+    color: '#4a90e2',
+    marginBottom: 12,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 6,
+  },
+  detailLabel: {
+    fontSize: 15,
+    color: '#888',
+    fontWeight: '600',
+  },
+  detailValue: {
+    fontSize: 15,
+    color: '#222',
+    fontWeight: '500',
+  },
+  detailSection: {
+    width: '100%',
+    marginTop: 18,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 10,
+  },
+  detailSectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#4a90e2',
+    marginBottom: 4,
+  },
+  detailSectionItem: {
+    fontSize: 15,
+    color: '#222',
+    marginBottom: 2,
+  },
+  detailContactBtn: {
+    marginTop: 24,
+    backgroundColor: '#27ae60',
+    borderRadius: 12,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#27ae60',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  detailContactBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 17,
   },
 }); 
