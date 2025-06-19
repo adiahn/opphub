@@ -4,13 +4,14 @@ import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ username?: string; password?: string; general?: string }>({});
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -31,7 +32,30 @@ export default function LoginScreen() {
     ]).start();
   }, []);
 
+  const validateForm = () => {
+    const newErrors: { username?: string; password?: string } = {};
+    
+    if (!username.trim()) {
+      newErrors.username = 'Username or email is required';
+    }
+    
+    if (!password.trim()) {
+      newErrors.password = 'Password is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleLogin = async () => {
+    // Clear previous errors
+    setErrors({});
+    
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       const response = await fetch('https://oppotunitieshubbackend.onrender.com/api/auth/login', {
@@ -40,7 +64,7 @@ export default function LoginScreen() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email,
+          email: username, // Send as email to backend
           password,
         }),
       });
@@ -53,11 +77,11 @@ export default function LoginScreen() {
         await SecureStore.setItemAsync('userInfo', JSON.stringify(data.user));
         router.replace('/(tabs)/home');
       } else {
-        // Show error message from API if available
-        Alert.alert('Error', data.message || 'Invalid credentials');
+        // Show error message in UI
+        setErrors({ general: data.message || 'Invalid credentials' });
       }
     } catch (error) {
-      Alert.alert('Error', 'Something went wrong');
+      setErrors({ general: 'Network error. Please check your connection.' });
     } finally {
       setIsLoading(false);
     }
@@ -99,25 +123,35 @@ export default function LoginScreen() {
           }
         ]}
       >
-        {/* Email Input */}
-        <View style={styles.inputContainer}>
+        {/* General Error Message */}
+        {errors.general && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{errors.general}</Text>
+          </View>
+        )}
+
+        {/* Username/Email Input */}
+        <View style={[styles.inputContainer, errors.username && styles.inputContainerError]}>
           <View style={styles.inputIconContainer}>
-            <Ionicons name="mail-outline" size={20} color={Colors.light.tint} />
+            <Ionicons name="person-outline" size={20} color={Colors.light.tint} />
           </View>
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="Username or Email"
             placeholderTextColor="#666"
-            keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            value={email}
-            onChangeText={setEmail}
+            value={username}
+            onChangeText={(text) => {
+              setUsername(text);
+              if (errors.username) setErrors(prev => ({ ...prev, username: undefined }));
+            }}
           />
         </View>
+        {errors.username && <Text style={styles.fieldErrorText}>{errors.username}</Text>}
 
         {/* Password Input */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, errors.password && styles.inputContainerError]}>
           <View style={styles.inputIconContainer}>
             <Ionicons name="lock-closed-outline" size={20} color={Colors.light.tint} />
           </View>
@@ -127,7 +161,10 @@ export default function LoginScreen() {
             placeholderTextColor="#666"
             secureTextEntry={!showPassword}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+            }}
           />
           <TouchableOpacity 
             style={styles.showPasswordButton}
@@ -140,6 +177,7 @@ export default function LoginScreen() {
             />
           </TouchableOpacity>
         </View>
+        {errors.password && <Text style={styles.fieldErrorText}>{errors.password}</Text>}
 
         {/* Forgot Password */}
         <TouchableOpacity style={styles.forgotPasswordContainer}>
@@ -281,5 +319,29 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
     fontSize: 14,
     fontWeight: '600',
+  },
+  errorContainer: {
+    backgroundColor: '#FFE5E5',
+    borderWidth: 1,
+    borderColor: '#FFCCCC',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#D32F2F',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  inputContainerError: {
+    borderColor: '#D32F2F',
+    borderWidth: 1,
+  },
+  fieldErrorText: {
+    color: '#D32F2F',
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 8,
+    marginLeft: 12,
   },
 }); 
