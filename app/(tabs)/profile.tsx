@@ -14,17 +14,8 @@ interface UserProfile {
   name: string;
   bio: string;
   location: string;
-  stars: number;
+  level: string;
 }
-
-const QuickAction = ({ icon, title, onPress }: { icon: string; title: string; onPress: () => void }) => (
-  <TouchableOpacity style={styles.quickAction} onPress={onPress}>
-    <View style={styles.quickActionIcon}>
-      <IconSymbol name={icon} size={24} color={Colors.light.tint} />
-    </View>
-    <ThemedText style={styles.quickActionTitle}>{title}</ThemedText>
-  </TouchableOpacity>
-);
 
 export default function ProfileScreen() {
   const theme = useColorScheme() ?? 'light';
@@ -32,6 +23,17 @@ export default function ProfileScreen() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Level color mapping
+  const levelColors: Record<string, string> = {
+    'Newcomer': '#A0A0A0',      // Gray
+    'Explorer': '#3498db',      // Blue
+    'Contributor': '#27ae60',   // Green
+    'Collaborator': '#f1c40f',  // Yellow
+    'Achiever': '#e67e22',      // Orange
+    'Expert': '#9b59b6',        // Purple
+    'Legend': '#e74c3c',        // Red
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -45,8 +47,18 @@ export default function ProfileScreen() {
           },
         });
         const data = await response.json();
+        console.log('Profile API response:', data); // Debug log
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        console.log('Bio field:', data.bio);
+        console.log('Location field:', data.location);
+        console.log('Name field:', data.name);
+        console.log('Level field:', data.level);
+        // If the response is nested, map it here
+        // Example: setProfile(data.user || data);
         setProfile(data);
       } catch (e) {
+        console.error('Profile fetch error:', e);
         setProfile(null);
       } finally {
         setLoading(false);
@@ -67,47 +79,47 @@ export default function ProfileScreen() {
         style={styles.header}
       >
         <View style={styles.profileHeader}>
-          <TouchableOpacity 
-            style={styles.profileImageContainer}
-            onPress={() => router.push('/profile/edit')}
-          >
+          <View style={styles.initialsShadowWrapper}>
             <View style={styles.initialsCircle}>
-              <ThemedText style={styles.initialsText}>
+              <ThemedText style={styles.initialsText} numberOfLines={1} adjustsFontSizeToFit>
                 {profile ? getInitials(profile.name) : ''}
               </ThemedText>
             </View>
-            <View style={styles.editOverlay}>
-              <IconSymbol name="camera.fill" size={20} color="#fff" />
-            </View>
-          </TouchableOpacity>
+          </View>
           <View style={styles.profileInfo}>
             {loading ? (
               <ThemedText style={styles.name}>Loading...</ThemedText>
             ) : profile ? (
               <>
                 <ThemedText style={styles.name}>{profile.name}</ThemedText>
-                {profile.bio && <ThemedText style={styles.bio}>{profile.bio}</ThemedText>}
-                {profile.location && (
-                  <ThemedText style={styles.location}>{profile.location}</ThemedText>
-                )}
-                <View style={styles.levelBadge}>
-                  <ThemedText style={styles.levelText}>Level {profile.stars}</ThemedText>
+                <View style={[styles.levelBadge, { backgroundColor: levelColors[profile.level] || '#A0A0A0' }]}> 
+                  <ThemedText style={styles.levelText}>{profile.level}</ThemedText>
                 </View>
               </>
             ) : (
               <ThemedText style={styles.name}>Profile not found</ThemedText>
             )}
-            <TouchableOpacity 
-              style={styles.editProfileButton}
-              onPress={() => router.push('/profile/edit')}
-            >
-              <ThemedText style={styles.editProfileText}>Edit Profile</ThemedText>
-            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
 
+      {/* Bio and Location Card */}
+      <View style={styles.infoCard}>
+        <ThemedText style={styles.sectionTitle}>Bio</ThemedText>
+        <ThemedText style={styles.sectionContent}>
+          {profile?.bio ? profile.bio : 'No bio provided yet. Add your bio to let others know more about you!'}
+        </ThemedText>
+        <View style={styles.divider} />
+        <ThemedText style={styles.sectionTitle}>Location</ThemedText>
+        <ThemedText style={styles.sectionContent}>
+          {profile?.location ? profile.location : 'No location set. Add your location to connect with others nearby!'}
+        </ThemedText>
+      </View>
+
       <View style={styles.content}>
+        <TouchableOpacity style={styles.editProfileButton} onPress={() => router.push('/profile/edit')}>
+          <ThemedText style={styles.editProfileText}>Edit Profile</ThemedText>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.logoutButton}>
           <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="#FF3B30" />
           <ThemedText style={styles.logoutText}>Log Out</ThemedText>
@@ -174,13 +186,15 @@ const styles = StyleSheet.create({
   },
   editProfileButton: {
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderRadius: 20,
     backgroundColor: Colors.light.tint,
+    alignItems: 'center',
+    marginBottom: 16,
   },
   editProfileText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
   },
   content: {
@@ -200,20 +214,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
+  initialsShadowWrapper: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    marginBottom: 12,
+  },
   initialsCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     backgroundColor: Colors.light.tint,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: '#fff',
+    display: 'flex',
   },
   initialsText: {
     color: '#fff',
-    fontSize: 48,
+    fontSize: 36,
     fontWeight: '700',
+    textAlign: 'center',
+    width: '100%',
+    height: undefined,
   },
   levelBadge: {
     backgroundColor: Colors.light.tint,
@@ -227,5 +253,35 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 14,
+  },
+  infoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    marginHorizontal: 20,
+    marginTop: -30,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.tint,
+    marginBottom: 4,
+  },
+  sectionContent: {
+    fontSize: 15,
+    color: '#222',
+    marginBottom: 12,
+    opacity: 0.85,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 10,
   },
 }); 

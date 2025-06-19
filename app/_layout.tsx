@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
 
 const queryClient = new QueryClient();
 
@@ -43,37 +45,28 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          headerStyle: {
-            backgroundColor: isDark ? '#1a1a1a' : '#fff',
-          },
-          headerTintColor: isDark ? '#fff' : '#000', 
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
-        }}
-      >
-        {!isAuthenticated ? (
-          <>
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="signup" options={{ headerShown: false }} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen 
-              name="post/[id]" 
-              options={{ 
-                headerShown: true,
-                headerTitle: 'Post Details',
-                headerBackTitle: 'Back'
-              }} 
-            />
-          </>
-        )}
-      </Stack>
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: isDark ? '#1a1a1a' : '#fff' }}>
+          <ActivityIndicator size="large" color={isDark ? '#fff' : Colors.light.tint} />
+        </View>
+      ) : (
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            headerStyle: {
+              backgroundColor: isDark ? '#1a1a1a' : '#fff',
+            },
+            headerTintColor: isDark ? '#fff' : '#000', 
+            headerTitleStyle: {
+              fontWeight: '600',
+            },
+          }}
+        >
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="signup" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
+      )}
     </QueryClientProvider>
   );
 }
