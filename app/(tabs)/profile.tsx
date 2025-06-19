@@ -36,35 +36,44 @@ export default function ProfileScreen() {
   };
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const loadProfile = async () => {
       setLoading(true);
       try {
+        // First, try to load cached profile for instant display
+        const cachedProfile = await SecureStore.getItemAsync('userProfile');
+        if (cachedProfile) {
+          setProfile(JSON.parse(cachedProfile));
+          setLoading(false);
+        }
+        
+        // Then fetch fresh data in background
         const token = await SecureStore.getItemAsync('userToken');
         if (!token) throw new Error('No token found');
+        
         const response = await fetch('https://oppotunitieshubbackend.onrender.com/api/profile/basic', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
-        const data = await response.json();
-        console.log('Profile API response:', data); // Debug log
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-        console.log('Bio field:', data.bio);
-        console.log('Location field:', data.location);
-        console.log('Name field:', data.name);
-        console.log('Level field:', data.level);
-        // If the response is nested, map it here
-        // Example: setProfile(data.user || data);
-        setProfile(data);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setProfile(data);
+          // Update cached profile
+          await SecureStore.setItemAsync('userProfile', JSON.stringify(data));
+        }
       } catch (e) {
         console.error('Profile fetch error:', e);
-        setProfile(null);
+        // Don't clear profile if we have cached data
+        if (!profile) {
+          setProfile(null);
+        }
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
+    
+    loadProfile();
   }, []);
 
   function getInitials(name: string) {

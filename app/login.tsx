@@ -75,6 +75,24 @@ export default function LoginScreen() {
         // Store the token and user info securely
         await SecureStore.setItemAsync('userToken', data.token);
         await SecureStore.setItemAsync('userInfo', JSON.stringify(data.user));
+        
+        // Fetch and store profile immediately
+        try {
+          const profileResponse = await fetch('https://oppotunitieshubbackend.onrender.com/api/profile/basic', {
+            headers: {
+              'Authorization': `Bearer ${data.token}`,
+            },
+          });
+          
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+            await SecureStore.setItemAsync('userProfile', JSON.stringify(profileData));
+          }
+        } catch (profileError) {
+          console.log('Profile fetch failed during login:', profileError);
+          // Continue with login even if profile fetch fails
+        }
+        
         router.replace('/(tabs)/home');
       } else {
         // Show error message in UI
