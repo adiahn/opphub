@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -88,124 +88,126 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <StatusBar style="light" />
-      
-      {/* Logo and Welcome Section */}
-      <Animated.View 
-        style={[
-          styles.headerContainer,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }
-        ]}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>C</Text>
-          </View>
-        </View>
-        <Text style={styles.welcomeText}>Welcome Back</Text>
-        <Text style={styles.subtitleText}>Sign in to continue</Text>
-      </Animated.View>
-
-      {/* Login Form */}
-      <Animated.View 
-        style={[
-          styles.formContainer,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }
-        ]}
-      >
-        {/* General Error Message */}
-        {errors.general && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{errors.general}</Text>
-          </View>
-        )}
-
-        {/* Username/Email Input */}
-        <View style={[styles.inputContainer, errors.username && styles.inputContainerError]}>
-          <View style={styles.inputIconContainer}>
-            <Ionicons name="person-outline" size={20} color={Colors.light.tint} />
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Username or Email"
-            placeholderTextColor="#666"
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={username}
-            onChangeText={(text) => {
-              setUsername(text);
-              if (errors.username) setErrors(prev => ({ ...prev, username: undefined }));
-            }}
-          />
-        </View>
-        {errors.username && <Text style={styles.fieldErrorText}>{errors.username}</Text>}
-
-        {/* Password Input */}
-        <View style={[styles.inputContainer, errors.password && styles.inputContainerError]}>
-          <View style={styles.inputIconContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color={Colors.light.tint} />
-          </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#666"
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
-            }}
-          />
-          <TouchableOpacity 
-            style={styles.showPasswordButton}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <Ionicons 
-              name={showPassword ? "eye-off-outline" : "eye-outline"} 
-              size={20} 
-              color="#666" 
-            />
-          </TouchableOpacity>
-        </View>
-        {errors.password && <Text style={styles.fieldErrorText}>{errors.password}</Text>}
-
-        {/* Forgot Password */}
-        <TouchableOpacity style={styles.forgotPasswordContainer}>
-          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-        </TouchableOpacity>
-
-        {/* Login Button */}
-        <TouchableOpacity 
-          style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-          onPress={handleLogin}
-          disabled={isLoading}
+        <StatusBar style="light" />
+        
+        {/* Logo and Welcome Section */}
+        <Animated.View 
+          style={[
+            styles.headerContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }
+          ]}
         >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.loginButtonText}>Sign In</Text>
-          )}
-        </TouchableOpacity>
+          <View style={styles.logoContainer}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoText}>C</Text>
+            </View>
+          </View>
+          <Text style={styles.welcomeText}>Welcome Back</Text>
+          <Text style={styles.subtitleText}>Sign in to continue</Text>
+        </Animated.View>
 
-        {/* Sign Up Link */}
-        <View style={styles.signupContainer}>
-          <Text style={styles.signupText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push('/signup')}>
-            <Text style={styles.signupLink}>Sign Up</Text>
+        {/* Login Form */}
+        <Animated.View 
+          style={[
+            styles.formContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }
+          ]}
+        >
+          {/* General Error Message */}
+          {errors.general && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{errors.general}</Text>
+            </View>
+          )}
+
+          {/* Username/Email Input */}
+          <View style={[styles.inputContainer, errors.username && styles.inputContainerError]}>
+            <View style={styles.inputIconContainer}>
+              <Ionicons name="person-outline" size={20} color={Colors.light.tint} />
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Username or Email"
+              placeholderTextColor="#666"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={username}
+              onChangeText={(text) => {
+                setUsername(text);
+                if (errors.username) setErrors(prev => ({ ...prev, username: undefined }));
+              }}
+            />
+          </View>
+          {errors.username && <Text style={styles.fieldErrorText}>{errors.username}</Text>}
+
+          {/* Password Input */}
+          <View style={[styles.inputContainer, errors.password && styles.inputContainerError]}>
+            <View style={styles.inputIconContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color={Colors.light.tint} />
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#666"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+              }}
+            />
+            <TouchableOpacity 
+              style={styles.showPasswordButton}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <Ionicons 
+                name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                size={20} 
+                color="#666" 
+              />
+            </TouchableOpacity>
+          </View>
+          {errors.password && <Text style={styles.fieldErrorText}>{errors.password}</Text>}
+
+          {/* Forgot Password */}
+          <TouchableOpacity style={styles.forgotPasswordContainer}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
-        </View>
-      </Animated.View>
-    </KeyboardAvoidingView>
+
+          {/* Login Button */}
+          <TouchableOpacity 
+            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginButtonText}>Sign In</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Sign Up Link */}
+          <View style={styles.signupContainer}>
+            <Text style={styles.signupText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={styles.signupLink}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 }
 
