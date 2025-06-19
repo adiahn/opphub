@@ -143,29 +143,6 @@ export default function ProfileScreen() {
         <ThemedText style={styles.sectionContent}>
           {profile?.profile?.location ? profile.profile.location : 'No location set. Add your location to connect with others nearby!'}
         </ThemedText>
-
-        {/* Social Links Section */}
-        {(profile?.profile?.website || profile?.profile?.github || profile?.profile?.linkedin) && (
-          <>
-            <View style={styles.divider} />
-            <ThemedText style={styles.sectionTitle}>Social Links</ThemedText>
-            {profile?.profile?.website && (
-              <TouchableOpacity onPress={() => handleOpenLink(profile.profile.website)}>
-                <ThemedText style={styles.linkText}>🌐 Website</ThemedText>
-              </TouchableOpacity>
-            )}
-            {profile?.profile?.github && (
-              <TouchableOpacity onPress={() => handleOpenLink(profile.profile.github)}>
-                <ThemedText style={styles.linkText}>GitHub</ThemedText>
-              </TouchableOpacity>
-            )}
-            {profile?.profile?.linkedin && (
-              <TouchableOpacity onPress={() => handleOpenLink(profile.profile.linkedin)}>
-                <ThemedText style={styles.linkText}>LinkedIn</ThemedText>
-              </TouchableOpacity>
-            )}
-          </>
-        )}
       </View>
 
       <View style={styles.content}>
@@ -264,11 +241,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#e0e0e0',
     marginVertical: 16,
-  },
-  linkText: {
-    fontSize: 15,
-    color: Colors.light.tint,
-    marginVertical: 4,
   },
   content: {
     padding: 20,
