@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
+import { Provider } from 'react-redux';
+import { store } from '../services/store';
 
 const queryClient = new QueryClient();
 
@@ -51,23 +53,32 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          headerStyle: {
-            backgroundColor: isDark ? '#1a1a1a' : '#fff',
-          },
-          headerTintColor: isDark ? '#fff' : '#000', 
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
-        }}
-      >
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="signup" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
-    </QueryClientProvider>
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            headerStyle: {
+              backgroundColor: isDark ? '#1a1a1a' : '#fff',
+            },
+            headerTintColor: isDark ? '#fff' : '#000', 
+            headerTitleStyle: {
+              fontWeight: '600',
+            },
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="signup" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen 
+            name="profile/edit" 
+            options={{ 
+              title: 'Edit Profile',
+              headerShadowVisible: false,
+            }} 
+          />
+        </Stack>
+      </QueryClientProvider>
+    </Provider>
   );
 }
