@@ -3,13 +3,12 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
-import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const TAB_CONFIG = [
   { name: 'home', label: 'Home', icon: 'home-outline' },
   { name: 'search', label: 'Search', icon: 'search-outline' },
-  { name: 'favourites', label: 'Community', icon: 'people-outline' },
+  { name: 'community', label: 'Community', icon: 'people-outline' },
   { name: 'profile', label: 'Profile', icon: 'person-outline' },
 ];
 
@@ -73,7 +72,7 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="home" />
       <Tabs.Screen name="search" />
-      <Tabs.Screen name="favourites" />
+      <Tabs.Screen name="community" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );

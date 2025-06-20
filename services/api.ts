@@ -47,6 +47,36 @@ export interface PostsResponse {
   totalPages: number;
 }
 
+export interface CommunityUser {
+  _id: string;
+  name: string;
+  xp: number;
+  level: string;
+  stars: number;
+  profile: {
+    bio?: string;
+    location?: string;
+    github?: string;
+    linkedin?: string;
+    skills?: {
+        name: string;
+        level: string;
+        yearsOfExperience: number;
+        _id: string;
+    }[];
+  };
+}
+
+export interface CommunityLeaderboardResponse {
+  users: CommunityUser[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalUsers: number;
+    hasMore: boolean;
+  };
+}
+
 const api = {
   getPosts: async (page: number = 1, perPage: number = 10): Promise<PostsResponse> => {
     const url = `${BASE_URL}/posts`;
@@ -75,17 +105,20 @@ const api = {
   },
 
   getPost: async (id: number): Promise<Post> => {
-    const response = await axios.get(`${BASE_URL}/posts/${id}`, {
-      params: {
-        _embed: true,
-      },
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      timeout: 10000,
-    });
-    return response.data;
+    const url = `${BASE_URL}/posts/${id}`;
+    try {
+      const response = await axios.get(url, {
+        params: { _embed: true },
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        timeout: 15000,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(`Network request failed: ${error.message}`);
+      }
+      throw error;
+    }
   },
 
   getFreshPosts: async (perPage: number = 5): Promise<Post[]> => {
@@ -134,10 +167,8 @@ const api = {
   checkIn: async () => {
     try {
       const token = await getToken();
-      console.log('Check-in token:', token ? 'Token exists' : 'No token found');
       if (!token) throw new Error('No authentication token found');
       
-      console.log('Making check-in request to:', 'https://oppotunitieshubbackend.onrender.com/api/users/check-in');
       const response = await axios.post(`https://oppotunitieshubbackend.onrender.com/api/users/check-in`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -146,15 +177,32 @@ const api = {
         },
         timeout: 10000,
       });
-      console.log('Check-in response status:', response.status);
-      console.log('Check-in response data:', response.data);
       return response.data;
     } catch (error) {
-      console.log('Check-in error:', error);
       if (axios.isAxiosError(error)) {
-        console.log('Check-in axios error response:', error.response?.data);
-        console.log('Check-in axios error status:', error.response?.status);
         throw new Error(error.response?.data?.message || 'Failed to check in');
+      }
+      throw error;
+    }
+  },
+
+  getCommunityLeaderboard: async (page: number = 1, limit: number = 20): Promise<CommunityLeaderboardResponse> => {
+    try {
+      const token = await getToken();
+      if (!token) throw new Error('No authentication token found');
+      
+      const response = await axios.get(`https://oppotunitieshubbackend.onrender.com/api/community/leaderboard`, {
+        params: { page, limit },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+        timeout: 10000,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(error.response?.data?.message || 'Failed to fetch leaderboard');
       }
       throw error;
     }

@@ -3,10 +3,10 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { api, Post } from '@/services/api';
+import api, { Post } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,8 +31,8 @@ export default function PostScreen() {
     if (!post) return;
     try {
       await Share.share({
-        message: `Check out this post: ${post.title.rendered}\nhttps://opportunitieshub.ng/post/${post.id}`,
-        url: `https://opportunitieshub.ng/post/${post.id}`,
+        message: `Check out this post: ${post.title.rendered}\n${post.link}`,
+        url: post.link,
       });
     } catch (error) {
       Alert.alert('Error', 'Could not share post.');
@@ -41,6 +41,7 @@ export default function PostScreen() {
 
   // Helper: Split HTML content into sections by <h2>
   function splitHtmlSections(html: string) {
+    if (!html) return [{ title: 'Details', html: '' }];
     const regex = /<h2[^>]*>(.*?)<\/h2>/gi;
     let lastIndex = 0;
     let match;
@@ -84,16 +85,16 @@ export default function PostScreen() {
     );
   }
 
-  // Extract meta info
+  // Extract meta info safely
   const imageUrl = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
   const author = post._embedded?.author?.[0]?.name || 'Unknown';
   const authorAvatar = post._embedded?.author?.[0]?.avatar_urls?.['96'];
   const date = new Date(post.date).toLocaleDateString();
   const category = post._embedded?.['wp:term']?.[0]?.[0]?.name;
-  const readTime = Math.max(1, Math.round(post.content.rendered.split(' ').length / 200));
+  const readTime = post.content?.rendered ? Math.max(1, Math.round(post.content.rendered.split(' ').length / 200)) : 0;
 
   // Split content into sections
-  const sections = splitHtmlSections(post.content.rendered);
+  const sections = splitHtmlSections(post.content?.rendered);
 
   return (
     <>
@@ -134,10 +135,10 @@ export default function PostScreen() {
               {category && (
                 <View style={styles.heroChip}><ThemedText style={styles.heroChipText}>{category}</ThemedText></View>
               )}
-              {/* Add more chips if you want, e.g. location, tags */}
             </View>
           </View>
         </View>
+        
         {/* Floating Info Card */}
         <View style={styles.floatingInfoCard}>
           <View style={styles.infoCardRow}>
@@ -151,7 +152,6 @@ export default function PostScreen() {
               <ThemedText style={styles.infoCardLabel}>Time Left</ThemedText>
               <ThemedText style={styles.infoCardValue}>{readTime} min</ThemedText>
             </View>
-            {/* Add location or other info if available */}
           </View>
           <TouchableOpacity
             style={styles.applyButton}
@@ -160,6 +160,7 @@ export default function PostScreen() {
             <ThemedText style={styles.applyButtonText}>Apply Now</ThemedText>
           </TouchableOpacity>
         </View>
+
         {/* Content Section */}
         <View style={styles.headerContent}>
           <View style={styles.metaRow}>
@@ -198,7 +199,6 @@ export default function PostScreen() {
                     h3: { fontSize: 18, fontWeight: '700', marginVertical: 8 },
                     p: { marginVertical: 8 },
                     li: { marginVertical: 4 },
-                    a: { color: Colors.light.tint, textDecorationLine: 'underline' },
                   }}
                 />
               </View>
@@ -213,234 +213,150 @@ export default function PostScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   centered: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  imageContainer: {
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: 260,
-    backgroundColor: '#eee',
-  },
-  content: {
-    padding: 16,
-    paddingTop: 0,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 14,
-    marginTop: 8,
-    color: '#222',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 18,
-    gap: 8,
-  },
-  metaText: {
-    fontSize: 15,
-    opacity: 0.7,
-    marginHorizontal: 2,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
-    backgroundColor: '#eee',
-  },
-  shareButton: {
-    marginRight: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    marginBottom: 8,
-  },
-  backIconButton: {
-    padding: 6,
-    borderRadius: 20,
-    backgroundColor: '#F2F2F7',
-    marginRight: 8,
-  },
-  sectionsContainer: {
-    marginTop: 8,
-    gap: 18,
-  },
-  sectionCard: {
-    backgroundColor: '#F8F9FB',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 8,
-    color: '#4B72FA',
-  },
   backButton: {
-    marginTop: 24,
-    paddingHorizontal: 18,
+    marginTop: 20,
     paddingVertical: 10,
-    backgroundColor: Colors.light.tint,
+    paddingHorizontal: 20,
     borderRadius: 8,
+    backgroundColor: Colors.light.tint,
   },
   backButtonText: {
     color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  wideImage: {
-    width: '100%',
-    height: 260,
-    backgroundColor: '#eee',
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  headerContent: {
-    paddingHorizontal: 18,
-    paddingBottom: 10,
-    marginBottom: 8,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#e5e5e5',
-    marginHorizontal: 18,
-    marginBottom: 18,
-  },
-  overlayButtons: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    zIndex: 10,
+    fontWeight: '600',
   },
   overlayIconButton: {
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     borderRadius: 20,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 2,
+    padding: 8,
   },
   heroContainer: {
-    position: 'relative',
     width: '100%',
-    height: 260,
-    marginBottom: 0,
+    height: SCREEN_WIDTH * 0.8,
+    backgroundColor: '#ccc',
   },
   heroImage: {
     width: '100%',
-    height: 260,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+    height: '100%',
   },
   heroGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 100,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   heroInfoLayer: {
     position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
-    bottom: 16,
-    paddingHorizontal: 20,
-    zIndex: 5,
+    padding: 16,
+    justifyContent: 'flex-end',
   },
   heroTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
     color: '#fff',
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.25)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 10,
   },
   heroChipsRow: {
     flexDirection: 'row',
-    gap: 8,
+    marginTop: 8,
   },
   heroChip: {
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     marginRight: 8,
   },
   heroChipText: {
-    color: Colors.light.tint,
-    fontWeight: '700',
+    color: '#fff',
+    fontWeight: '600',
     fontSize: 12,
   },
   floatingInfoCard: {
     backgroundColor: '#fff',
-    borderRadius: 18,
-    marginHorizontal: 20,
-    marginTop: -36,
-    marginBottom: 18,
+    marginHorizontal: 16,
+    marginTop: -40,
+    borderRadius: 12,
     padding: 16,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
-    zIndex: 10,
   },
   infoCardRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    justifyContent: 'space-around',
+    alignItems: 'center',
   },
   infoCardItem: {
     alignItems: 'center',
-    flex: 1,
   },
   infoCardLabel: {
-    fontSize: 11,
-    color: '#888',
-    marginTop: 2,
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
   infoCardValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.light.tint,
-    marginTop: 2,
+    fontSize: 16,
+    fontWeight: '600',
   },
   applyButton: {
     backgroundColor: Colors.light.tint,
-    borderRadius: 16,
-    paddingVertical: 10,
+    borderRadius: 8,
+    paddingVertical: 14,
+    marginTop: 16,
     alignItems: 'center',
-    marginTop: 8,
   },
   applyButtonText: {
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: 'bold',
     fontSize: 16,
+  },
+  headerContent: {
+    paddingHorizontal: 16,
+    paddingTop: 24,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  avatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  metaText: {
+    color: '#666',
+    fontSize: 12,
+    marginRight: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginHorizontal: 16,
+    marginVertical: 16,
+  },
+  content: {
+    paddingHorizontal: 16,
+  },
+  sectionsContainer: {},
+  sectionCard: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
 }); 
