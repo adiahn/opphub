@@ -3,7 +3,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { clearError, signup } from '../services/authSlice';
+import type { AppDispatch, RootState } from '../services/store';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');
@@ -12,6 +15,10 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirmPassword?: string }>({});
+
+  const dispatch = useDispatch<AppDispatch>();
+  const { loading, error: authError } = useSelector((state: RootState) => state.auth);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -32,9 +39,59 @@ export default function SignupScreen() {
     ]).start();
   }, []);
 
-  const handleSignup = () => {
-    // TODO: Implement signup logic
-    router.push('/(tabs)');
+  // Clear auth error when component mounts
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
+  const validateForm = () => {
+    const newErrors: { name?: string; email?: string; password?: string; confirmPassword?: string } = {};
+    
+    if (!name.trim()) {
+      newErrors.name = 'Full name is required';
+    }
+    
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (!password.trim()) {
+      newErrors.password = 'Password is required';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    
+    if (!confirmPassword.trim()) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSignup = async () => {
+    // Clear previous errors
+    setErrors({});
+    dispatch(clearError());
+    
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      const result = await dispatch(signup({ name, email, password })).unwrap();
+      if (result) {
+        router.replace('/(tabs)/home');
+      }
+    } catch (error) {
+      // Error is handled by the Redux slice
+      console.error('Signup failed:', error);
+    }
   };
 
   return (
@@ -54,11 +111,11 @@ export default function SignupScreen() {
           }
         ]}
       >
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.logoContainer}>
+          <View style={styles.logoCircle}>
+            <Text style={styles.logoText}>C</Text>
+          </View>
+        </View>
         <Text style={styles.welcomeText}>Create Account</Text>
         <Text style={styles.subtitleText}>Join our community</Text>
       </Animated.View>
@@ -73,8 +130,15 @@ export default function SignupScreen() {
           }
         ]}
       >
+        {/* General Error Message */}
+        {authError && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{authError}</Text>
+          </View>
+        )}
+
         {/* Name Input */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, errors.name && styles.inputContainerError]}>
           <View style={styles.inputIconContainer}>
             <Ionicons name="person-outline" size={20} color={Colors.light.tint} />
           </View>
@@ -84,12 +148,16 @@ export default function SignupScreen() {
             placeholderTextColor="#666"
             autoCorrect={false}
             value={name}
-            onChangeText={setName}
+            onChangeText={(text) => {
+              setName(text);
+              if (errors.name) setErrors(prev => ({ ...prev, name: undefined }));
+            }}
           />
         </View>
+        {errors.name && <Text style={styles.fieldErrorText}>{errors.name}</Text>}
 
         {/* Email Input */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, errors.email && styles.inputContainerError]}>
           <View style={styles.inputIconContainer}>
             <Ionicons name="mail-outline" size={20} color={Colors.light.tint} />
           </View>
@@ -101,12 +169,16 @@ export default function SignupScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+              if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
+            }}
           />
         </View>
+        {errors.email && <Text style={styles.fieldErrorText}>{errors.email}</Text>}
 
         {/* Password Input */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, errors.password && styles.inputContainerError]}>
           <View style={styles.inputIconContainer}>
             <Ionicons name="lock-closed-outline" size={20} color={Colors.light.tint} />
           </View>
@@ -116,7 +188,10 @@ export default function SignupScreen() {
             placeholderTextColor="#666"
             secureTextEntry={!showPassword}
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+            }}
           />
           <TouchableOpacity 
             style={styles.showPasswordButton}
@@ -129,9 +204,10 @@ export default function SignupScreen() {
             />
           </TouchableOpacity>
         </View>
+        {errors.password && <Text style={styles.fieldErrorText}>{errors.password}</Text>}
 
         {/* Confirm Password Input */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, errors.confirmPassword && styles.inputContainerError]}>
           <View style={styles.inputIconContainer}>
             <Ionicons name="lock-closed-outline" size={20} color={Colors.light.tint} />
           </View>
@@ -141,7 +217,10 @@ export default function SignupScreen() {
             placeholderTextColor="#666"
             secureTextEntry={!showConfirmPassword}
             value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: undefined }));
+            }}
           />
           <TouchableOpacity 
             style={styles.showPasswordButton}
@@ -154,13 +233,19 @@ export default function SignupScreen() {
             />
           </TouchableOpacity>
         </View>
+        {errors.confirmPassword && <Text style={styles.fieldErrorText}>{errors.confirmPassword}</Text>}
 
         {/* Signup Button */}
         <TouchableOpacity 
-          style={styles.signupButton}
+          style={[styles.signupButton, loading && styles.signupButtonDisabled]}
           onPress={handleSignup}
+          disabled={loading}
         >
-          <Text style={styles.signupButtonText}>Create Account</Text>
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.signupButtonText}>Create Account</Text>
+          )}
         </TouchableOpacity>
 
         {/* Login Link */}
@@ -185,10 +270,26 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     paddingBottom: 40,
   },
-  logo: {
+  logoContainer: {
     width: 100,
     height: 100,
-    marginBottom: 20,
+    borderRadius: 50,
+    backgroundColor: Colors.light.tint,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoText: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: Colors.light.tint,
   },
   welcomeText: {
     fontSize: 28,
@@ -240,6 +341,9 @@ const styles = StyleSheet.create({
     elevation: 4,
     marginTop: 8,
   },
+  signupButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
   signupButtonText: {
     color: '#fff',
     fontSize: 18,
@@ -258,5 +362,23 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
     fontSize: 14,
     fontWeight: '600',
+  },
+  errorContainer: {
+    backgroundColor: '#ffd1d1',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#ff0000',
+    fontSize: 14,
+  },
+  fieldErrorText: {
+    color: '#ff0000',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  inputContainerError: {
+    borderColor: '#ff0000',
   },
 }); 

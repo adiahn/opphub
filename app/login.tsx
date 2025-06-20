@@ -1,17 +1,21 @@
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { clearError, login } from '../services/authSlice';
+import type { AppDispatch, RootState } from '../services/store';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ username?: string; password?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
+
+  const dispatch = useDispatch<AppDispatch>();
+  const { loading, error: authError, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -32,6 +36,19 @@ export default function LoginScreen() {
     ]).start();
   }, []);
 
+  // Clear auth error when component mounts
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
+  // Navigate to home when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('User authenticated, navigating to home');
+      router.replace('/(tabs)/home');
+    }
+  }, [isAuthenticated]);
+
   const validateForm = () => {
     const newErrors: { username?: string; password?: string } = {};
     
@@ -50,6 +67,7 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     // Clear previous errors
     setErrors({});
+    dispatch(clearError());
     
     // Validate form
     if (!validateForm()) {
@@ -57,51 +75,13 @@ export default function LoginScreen() {
     }
 
     try {
-      setIsLoading(true);
-      const response = await fetch('https://oppotunitieshubbackend.onrender.com/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: username, // Send as email to backend
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store the token and user info securely
-        await SecureStore.setItemAsync('userToken', data.token);
-        await SecureStore.setItemAsync('userInfo', JSON.stringify(data.user));
-        
-        // Fetch and store profile immediately
-        try {
-          const profileResponse = await fetch('https://oppotunitieshubbackend.onrender.com/api/profile/basic', {
-            headers: {
-              'Authorization': `Bearer ${data.token}`,
-            },
-          });
-          
-          if (profileResponse.ok) {
-            const profileData = await profileResponse.json();
-            await SecureStore.setItemAsync('userProfile', JSON.stringify(profileData));
-          }
-        } catch (profileError) {
-          console.log('Profile fetch failed during login:', profileError);
-          // Continue with login even if profile fetch fails
-        }
-        
-        router.replace('/(tabs)/home');
-      } else {
-        // Show error message in UI
-        setErrors({ general: data.message || 'Invalid credentials' });
-      }
+      console.log('Starting login process...');
+      const result = await dispatch(login({ email: username, password })).unwrap();
+      console.log('Login successful:', result);
+      // Navigation will be handled by the useEffect above
     } catch (error) {
-      setErrors({ general: 'Network error. Please check your connection.' });
-    } finally {
-      setIsLoading(false);
+      console.error('Login failed:', error);
+      // Error is handled by the Redux slice
     }
   };
 
@@ -143,9 +123,9 @@ export default function LoginScreen() {
           ]}
         >
           {/* General Error Message */}
-          {errors.general && (
+          {authError && (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{errors.general}</Text>
+              <Text style={styles.errorText}>{authError}</Text>
             </View>
           )}
 
@@ -205,11 +185,11 @@ export default function LoginScreen() {
 
           {/* Login Button */}
           <TouchableOpacity 
-            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
             onPress={handleLogin}
-            disabled={isLoading}
+            disabled={loading}
           >
-            {isLoading ? (
+            {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={styles.loginButtonText}>Sign In</Text>

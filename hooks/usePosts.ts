@@ -1,36 +1,74 @@
-import api, { Category, Post, PostsResponse } from '@/services/api';
+import apiClient from '@/services/apiClient';
+import { Category, Post, PostsResponse } from '@/types/posts';
 import { useQuery } from '@tanstack/react-query';
 
 export const POSTS_QUERY_KEY = 'posts';
-export const FRESH_POSTS_QUERY_KEY = 'freshPosts';
 export const CATEGORIES_QUERY_KEY = 'categories';
 
-export const usePosts = (page: number = 1) => {
-  return useQuery<PostsResponse>({
-    queryKey: [POSTS_QUERY_KEY, page],
-    queryFn: () => api.getPosts(page),
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+// Base URL for the WordPress API
+const BASE_URL = 'https://opportunitieshub.ng/wp-json/wp/v2';
+
+export const usePosts = (page: number = 1, perPage: number = 10) => {
+  return useQuery<PostsResponse, Error>({
+    queryKey: [POSTS_QUERY_KEY, page, perPage],
+    queryFn: async () => {
+      const response = await apiClient.get<Post[]>(`${BASE_URL}/posts`, {
+        params: {
+          _embed: true,
+          per_page: perPage,
+          page,
+        },
+      });
+      return {
+        data: response.data,
+        totalPages: parseInt(response.headers['x-wp-totalpages'] || '1'),
+      };
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
-export const useFreshPosts = () => {
-  return useQuery<Post[]>({
-    queryKey: [FRESH_POSTS_QUERY_KEY],
-    queryFn: () => api.getFreshPosts(),
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+export const usePost = (id: number) => {
+  return useQuery<Post, Error>({
+    queryKey: [POSTS_QUERY_KEY, id],
+    queryFn: async () => {
+      const response = await apiClient.get<Post>(`${BASE_URL}/posts/${id}`, {
+        params: { _embed: true },
+      });
+      return response.data;
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+export const useFreshPosts = (perPage: number = 5) => {
+  return useQuery<Post[], Error>({
+    queryKey: [POSTS_QUERY_KEY, 'fresh'],
+    queryFn: async () => {
+      const response = await apiClient.get<Post[]>(`${BASE_URL}/posts`, {
+        params: {
+          _embed: true,
+          per_page: perPage,
+        },
+      });
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };
 
 export const useCategories = () => {
-  return useQuery<Category[]>({
+  return useQuery<Category[], Error>({
     queryKey: [CATEGORIES_QUERY_KEY],
-    queryFn: () => api.getCategories(),
-    staleTime: 1000 * 60 * 30, // Categories don't change often, so keep them fresh for 30 minutes
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    queryFn: async () => {
+      const response = await apiClient.get<Category[]>(`${BASE_URL}/categories`, {
+        params: {
+          per_page: 100,
+        },
+      });
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour
   });
 }; 

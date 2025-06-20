@@ -3,8 +3,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import api, { Post } from '@/services/api';
-import { useQuery } from '@tanstack/react-query';
+import { usePost } from '@/hooks/usePosts';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Image, ScrollView, Share, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -21,17 +20,14 @@ export default function PostScreen() {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const { data: post, isLoading, isError } = useQuery<Post>({
-    queryKey: ['post', id],
-    queryFn: () => api.getPost(Number(id)),
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-  });
+  const postId = Number(id);
+  const { data: post, isLoading, isError } = usePost(postId);
 
   const handleShare = async () => {
     if (!post) return;
     try {
       await Share.share({
-        message: `Check out this post: ${post.title.rendered}\n${post.link}`,
+        message: `Check out this post: ${post.title.rendered}\nRead more: ${post.link || ''}`,
         url: post.link,
       });
     } catch (error) {

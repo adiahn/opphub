@@ -2,46 +2,18 @@ import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useTheme } from '@/hooks/useTheme';
+import { UserProfile } from '@/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback } from 'react';
-import { ActivityIndicator, Dimensions, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../../services/authSlice';
 import { performCheckIn } from '../../services/checkInSlice';
 import { fetchProfile } from '../../services/profileSlice';
 import type { AppDispatch, RootState } from '../../services/store';
-
-interface ProfileData {
-  bio: string;
-  location: string;
-  website: string | null;
-  github: string | null;
-  linkedin: string | null;
-  skills: any[];
-  projects: any[];
-  achievements: any[];
-  education: any[];
-  workExperience: any[];
-}
-
-interface UserProfile {
-  profile: ProfileData;
-  streak: {
-    current: number;
-    longest: number;
-    lastCheckIn: string | null;
-  };
-  _id: string;
-  email: string;
-  name: string;
-  xp: number;
-  level: string;
-  stars: number;
-  createdAt: string;
-  updatedAt: string;
-  __v: number;
-}
 
 interface ProfileState {
   data: UserProfile | null;
@@ -63,6 +35,32 @@ const levelColors: Record<string, string> = {
   'Legend': '#e74c3c',        // Red
 };
 
+const ProfileDetailRow = ({ icon, title, content, onPress }: { icon: any, title: string, content: string | null, onPress?: () => void }) => {
+  if (!content) return null;
+  const { colors } = useTheme();
+
+  const contentElement = (
+    <View style={styles.detailRowContent}>
+      <IconSymbol name={icon} size={20} color={colors.text} style={styles.detailRowIcon} />
+      <ThemedText style={styles.detailRowTitle}>{title}</ThemedText>
+      <ThemedText style={styles.detailRowText} numberOfLines={1} ellipsizeMode="tail">
+        {content}
+      </ThemedText>
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} style={styles.detailRow}>
+        {contentElement}
+        <IconSymbol name="chevron.right" size={16} color={colors.text} style={styles.detailRowChevron} />
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={styles.detailRow}>{contentElement}</View>;
+};
+
 export default function ProfileScreen() {
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
@@ -70,23 +68,23 @@ export default function ProfileScreen() {
 
   // Get profile data from Redux store with proper typing
   const profileState = useSelector((state: RootState): ProfileState => state.profile as ProfileState);
-  const { data: profile, loading: profileLoading } = profileState;
+  const { data: userProfile, loading: profileLoading } = profileState;
 
   const checkInState = useSelector((state: RootState) => state.checkIn);
   const { loading: checkInLoading, todayCheckedIn, streak } = checkInState;
 
-  // Load profile data if not already loaded
-  React.useEffect(() => {
-    if (!profile) {
-      dispatch(fetchProfile());
-    }
-  }, [dispatch, profile]);
+  const authState = useSelector((state: RootState) => state.auth);
+  const { loading: logoutLoading } = authState;
 
   // Refresh profile data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      dispatch(fetchProfile());
-    }, [dispatch])
+      // Only fetch if we are not currently loading and if there is no profile data yet.
+      // This prevents the infinite loop on repeated auth failures.
+      if (!profileLoading && !userProfile) {
+        dispatch(fetchProfile());
+      }
+    }, [dispatch, profileLoading, userProfile])
   );
 
   function getInitials(name: string) {
@@ -125,6 +123,40 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(logout()).unwrap();
+              Toast.show({
+                type: 'success',
+                text1: 'Logged out successfully',
+              });
+              // Navigate to login page after successful logout
+              router.replace('/login');
+            } catch (error) {
+              Toast.show({
+                type: 'error',
+                text1: 'Logout failed',
+                text2: 'Please try again',
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScrollView style={styles.container} bounces={false}>
       <LinearGradient
@@ -135,18 +167,18 @@ export default function ProfileScreen() {
           <View style={styles.initialsShadowWrapper}>
             <View style={styles.initialsCircle}>
               <ThemedText style={styles.initialsText} numberOfLines={1} adjustsFontSizeToFit>
-                {profile ? getInitials(profile.name) : ''}
+                {userProfile ? getInitials(userProfile.name) : ''}
               </ThemedText>
             </View>
           </View>
           <View style={styles.profileInfo}>
             {profileLoading ? (
               <ThemedText style={styles.name}>Loading...</ThemedText>
-            ) : profile ? (
+            ) : userProfile ? (
               <>
-                <ThemedText style={styles.name}>{profile.name}</ThemedText>
-                <View style={[styles.levelBadge, { backgroundColor: levelColors[profile.level] || '#A0A0A0' }]}> 
-                  <ThemedText style={styles.levelText}>{profile.level}</ThemedText>
+                <ThemedText style={styles.name}>{userProfile.name}</ThemedText>
+                <View style={[styles.levelBadge, { backgroundColor: levelColors[userProfile.level] || '#A0A0A0' }]}> 
+                  <ThemedText style={styles.levelText}>{userProfile.level}</ThemedText>
                 </View>
               </>
             ) : (
@@ -160,10 +192,10 @@ export default function ProfileScreen() {
       <View style={styles.infoCard}>
         <View style={styles.streakContainer}>
           <ThemedText style={styles.streakText}>
-            Current Streak: {streak.current} days
+            Current Streak: <ThemedText style={styles.streakValue}>{userProfile?.streak?.current ?? 0} days</ThemedText>
           </ThemedText>
           <ThemedText style={styles.streakText}>
-            Longest Streak: {streak.longest} days
+            Longest Streak: <ThemedText style={styles.streakValue}>{userProfile?.streak?.longest ?? 0} days</ThemedText>
           </ThemedText>
         </View>
         <TouchableOpacity
@@ -185,18 +217,20 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Bio and Location Card */}
-      <View style={styles.infoCard}>
-        <ThemedText style={styles.sectionTitle}>Bio</ThemedText>
-        <ThemedText style={styles.sectionContent}>
-          {profile?.profile?.bio ? profile.profile.bio : 'No bio provided yet. Add your bio to let others know more about you!'}
-        </ThemedText>
-        <View style={styles.divider} />
-        <ThemedText style={styles.sectionTitle}>Location</ThemedText>
-        <ThemedText style={styles.sectionContent}>
-          {profile?.profile?.location ? profile.profile.location : 'No location set. Add your location to connect with others nearby!'}
-        </ThemedText>
-      </View>
+      {/* Profile Details Card */}
+      {userProfile?.profile ? (
+        <View style={styles.infoCard}>
+          <ProfileDetailRow icon="person.text.rectangle" title="Bio" content={userProfile.profile.bio} />
+          <ProfileDetailRow icon="location.fill" title="Location" content={userProfile.profile.location} />
+          <ProfileDetailRow icon="link" title="Website" content={userProfile.profile.website} onPress={() => handleOpenLink(userProfile.profile.website)} />
+          <ProfileDetailRow icon="chevron.left.slash.chevron.right" title="GitHub" content={userProfile.profile.github} onPress={() => handleOpenLink(userProfile.profile.github)} />
+          <ProfileDetailRow icon="network" title="LinkedIn" content={userProfile.profile.linkedin} onPress={() => handleOpenLink(userProfile.profile.linkedin)} />
+        </View>
+      ) : (
+        <View style={styles.infoCard}>
+          <ThemedText>No profile details available.</ThemedText>
+        </View>
+      )}
 
       <View style={styles.content}>
         <TouchableOpacity 
@@ -208,9 +242,15 @@ export default function ProfileScreen() {
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.logoutButton}
+          onPress={handleLogout}
+          disabled={logoutLoading}
           accessibilityLabel="Log out of your account"
         >
-          <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="#FF3B30" />
+          {logoutLoading ? (
+            <ActivityIndicator color="#FF3B30" size="small" />
+          ) : (
+            <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="#FF3B30" />
+          )}
           <ThemedText style={styles.logoutText}>Log Out</ThemedText>
         </TouchableOpacity>
       </View>
@@ -293,10 +333,10 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#e0e0e0',
-    marginVertical: 16,
+    marginVertical: 12,
   },
   content: {
-    padding: 20,
+    padding: 16,
   },
   editProfileButton: {
     paddingHorizontal: 20,
@@ -334,19 +374,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  streakValue: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   checkInButton: {
     backgroundColor: Colors.light.tint,
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: 16,
   },
   checkInButtonDisabled: {
     backgroundColor: Colors.light.tabIconDefault,
   },
   checkInButtonText: {
-    color: Colors.light.background,
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  detailRowContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  detailRowIcon: {
+    marginRight: 12,
+  },
+  detailRowTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  detailRowText: {
+    flex: 1,
+    color: '#666',
+    textAlign: 'right',
+    marginLeft: 16,
+  },
+  detailRowChevron: {
+    marginLeft: 8,
+    opacity: 0.6,
   },
 }); 

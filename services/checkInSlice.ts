@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import api from './api';
+import apiClient from './apiClient';
 
 interface CheckInResponse {
   message: string;
@@ -38,13 +38,10 @@ export const performCheckIn = createAsyncThunk(
   'checkIn/perform',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.checkIn();
-      return response as CheckInResponse;
-    } catch (error) {
-      if (error instanceof Error) {
-        return rejectWithValue(error.message);
-      }
-      return rejectWithValue('Failed to check in');
+      const response = await apiClient.post('/users/check-in');
+      return response.data as CheckInResponse;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to check in');
     }
   }
 );
