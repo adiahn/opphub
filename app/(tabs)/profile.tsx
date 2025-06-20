@@ -5,8 +5,10 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback } from 'react';
-import { Dimensions, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useDispatch, useSelector } from 'react-redux';
+import { performCheckIn } from '../../services/checkInSlice';
 import { fetchProfile } from '../../services/profileSlice';
 import type { AppDispatch, RootState } from '../../services/store';
 
@@ -68,7 +70,10 @@ export default function ProfileScreen() {
 
   // Get profile data from Redux store with proper typing
   const profileState = useSelector((state: RootState): ProfileState => state.profile as ProfileState);
-  const { data: profile, loading } = profileState;
+  const { data: profile, loading: profileLoading } = profileState;
+
+  const checkInState = useSelector((state: RootState) => state.checkIn);
+  const { loading: checkInLoading, todayCheckedIn, streak } = checkInState;
 
   // Load profile data if not already loaded
   React.useEffect(() => {
@@ -101,6 +106,25 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleCheckIn = async () => {
+    try {
+      const result = await dispatch(performCheckIn()).unwrap();
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: result.message,
+      });
+      // Refresh profile data after successful check-in
+      dispatch(fetchProfile());
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error?.message || 'Failed to check in',
+      });
+    }
+  };
+
   return (
     <ScrollView style={styles.container} bounces={false}>
       <LinearGradient
@@ -116,7 +140,7 @@ export default function ProfileScreen() {
             </View>
           </View>
           <View style={styles.profileInfo}>
-            {loading ? (
+            {profileLoading ? (
               <ThemedText style={styles.name}>Loading...</ThemedText>
             ) : profile ? (
               <>
@@ -131,6 +155,35 @@ export default function ProfileScreen() {
           </View>
         </View>
       </LinearGradient>
+
+      {/* Check-in Card */}
+      <View style={styles.infoCard}>
+        <View style={styles.streakContainer}>
+          <ThemedText style={styles.streakText}>
+            Current Streak: {streak.current} days
+          </ThemedText>
+          <ThemedText style={styles.streakText}>
+            Longest Streak: {streak.longest} days
+          </ThemedText>
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.checkInButton,
+            todayCheckedIn && styles.checkInButtonDisabled
+          ]}
+          onPress={handleCheckIn}
+          disabled={todayCheckedIn || checkInLoading}
+          accessibilityLabel={todayCheckedIn ? "You've already checked in today" : "Check in for today"}
+        >
+          {checkInLoading ? (
+            <ActivityIndicator color={Colors.light.background} />
+          ) : (
+            <ThemedText style={styles.checkInButtonText}>
+              {todayCheckedIn ? "Already Checked In" : "Daily Check-in"}
+            </ThemedText>
+          )}
+        </TouchableOpacity>
+      </View>
 
       {/* Bio and Location Card */}
       <View style={styles.infoCard}>
@@ -271,5 +324,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  streakContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  streakText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  checkInButton: {
+    backgroundColor: Colors.light.tint,
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkInButtonDisabled: {
+    backgroundColor: Colors.light.tabIconDefault,
+  },
+  checkInButtonText: {
+    color: Colors.light.background,
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

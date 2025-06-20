@@ -1,4 +1,4 @@
-import { api, Category, Post, PostsResponse } from '@/services/api';
+import api, { Category, Post, PostsResponse } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 
 export const POSTS_QUERY_KEY = 'posts';
@@ -10,6 +10,8 @@ export const usePosts = (page: number = 1) => {
     queryKey: [POSTS_QUERY_KEY, page],
     queryFn: () => api.getPosts(page),
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };
 
@@ -18,6 +20,8 @@ export const useFreshPosts = () => {
     queryKey: [FRESH_POSTS_QUERY_KEY],
     queryFn: () => api.getFreshPosts(),
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };
 
@@ -26,5 +30,7 @@ export const useCategories = () => {
     queryKey: [CATEGORIES_QUERY_KEY],
     queryFn: () => api.getCategories(),
     staleTime: 1000 * 60 * 30, // Categories don't change often, so keep them fresh for 30 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }; 
