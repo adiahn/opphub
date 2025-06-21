@@ -1,10 +1,11 @@
 import { ThemedText } from '@/components/ThemedText';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useTheme } from '@/hooks/useTheme';
 import { UserProfile } from '@/types';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Image, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Image, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../services/authSlice';
@@ -25,6 +26,7 @@ export default function ProfileScreen() {
     const { colors } = useTheme();
     const dispatch = useDispatch<AppDispatch>();
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
 
     const profileState = useSelector((state: RootState): ProfileState => state.profile as ProfileState);
     const { data: userProfile, loading: profileLoading } = profileState;
@@ -65,40 +67,45 @@ export default function ProfileScreen() {
                 text1: 'Success!',
                 text2: result.message,
             });
-            dispatch(fetchProfile());
         } catch (error: any) {
-            Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: error?.message || 'Failed to check in',
-            });
+            const errorMessage = typeof error === 'string' ? error : error?.message || 'Failed to check in';
+
+            if (errorMessage.toLowerCase().includes('already checked in')) {
+                Toast.show({
+                    type: 'info',
+                    text1: 'Already Committed',
+                    text2: 'You have already committed for today, come back tomorrow.',
+                });
+            } else {
+                Toast.show({
+                    type: 'error',
+                    text1: 'Error',
+                    text2: errorMessage,
+                });
+            }
         }
     };
 
     const handleLogout = () => {
-        Alert.alert('Logout', 'Are you sure you want to logout?', [
-            { text: 'Cancel', style: 'cancel' },
-            {
-                text: 'Logout',
-                style: 'destructive',
-                onPress: async () => {
-                    try {
-                        await dispatch(logout()).unwrap();
-                        Toast.show({
-                          type: 'success',
-                          text1: 'Logged out successfully',
-                        });
-                        router.replace('/login');
-                    } catch (error) {
-                        Toast.show({ 
-                            type: 'error', 
-                            text1: 'Logout failed',
-                            text2: 'Please try again'
-                        });
-                    }
-                },
-            },
-        ]);
+        setLogoutModalVisible(true);
+    };
+
+    const executeLogout = async () => {
+        setLogoutModalVisible(false);
+        try {
+            await dispatch(logout()).unwrap();
+            Toast.show({
+              type: 'success',
+              text1: 'Logged out successfully',
+            });
+            router.replace('/login');
+        } catch (error) {
+            Toast.show({ 
+                type: 'error', 
+                text1: 'Logout failed',
+                text2: 'Please try again'
+            });
+        }
     };
 
     if (profileLoading && !userProfile) {
@@ -190,6 +197,17 @@ export default function ProfileScreen() {
                 </View>
 
             </ScrollView>
+
+            <ConfirmationModal
+                visible={isLogoutModalVisible}
+                onClose={() => setLogoutModalVisible(false)}
+                onConfirm={executeLogout}
+                title="Confirm Logout"
+                message="Are you sure you want to log out?"
+                confirmText="Log Out"
+                isDestructive
+            />
+
             <TouchableOpacity
                 style={[styles.fab, {backgroundColor: colors.tint}, (todayCheckedIn || checkInLoading) && styles.fabDisabled]}
                 onPress={handleCheckIn}

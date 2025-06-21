@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { ProfileData, UserProfile } from '../types';
 import apiClient from './apiClient';
+import { performCheckIn } from './checkInSlice';
 
 interface ProfileState {
   data: UserProfile | null;
@@ -84,6 +85,16 @@ const profileSlice = createSlice({
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      .addCase(performCheckIn.fulfilled, (state, action) => {
+        if (state.data) {
+          state.data.streak = {
+            ...action.payload.streak,
+            lastCheckIn: new Date().toISOString(),
+          };
+          state.data.level = action.payload.level;
+          state.data.xp = action.payload.xp;
+        }
       });
   },
 });
