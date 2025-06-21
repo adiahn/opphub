@@ -1,13 +1,10 @@
 import { ThemedText } from '@/components/ThemedText';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { useTheme } from '@/hooks/useTheme';
 import { UserProfile } from '@/types';
-import { LinearGradient } from 'expo-linear-gradient';
+import { FontAwesome5 } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, Dimensions, Image, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../services/authSlice';
@@ -24,408 +21,357 @@ interface ProfileState {
 
 const { width } = Dimensions.get('window');
 
-// Level color mapping
-const levelColors: Record<string, string> = {
-  'Newcomer': '#A0A0A0',      // Gray
-  'Explorer': '#3498db',      // Blue
-  'Contributor': '#27ae60',   // Green
-  'Collaborator': '#f1c40f',  // Yellow
-  'Achiever': '#e67e22',      // Orange
-  'Expert': '#9b59b6',        // Purple
-  'Legend': '#e74c3c',        // Red
-};
-
-const ProfileDetailRow = ({ icon, title, content, onPress }: { icon: any, title: string, content: string | null, onPress?: () => void }) => {
-  if (!content) return null;
-  const { colors } = useTheme();
-
-  const contentElement = (
-    <View style={styles.detailRowContent}>
-      <IconSymbol name={icon} size={20} color={colors.text} style={styles.detailRowIcon} />
-      <ThemedText style={styles.detailRowTitle}>{title}</ThemedText>
-      <ThemedText style={styles.detailRowText} numberOfLines={1} ellipsizeMode="tail">
-        {content}
-      </ThemedText>
-    </View>
-  );
-
-  if (onPress) {
-    return (
-      <TouchableOpacity onPress={onPress} style={styles.detailRow}>
-        {contentElement}
-        <IconSymbol name="chevron.right" size={16} color={colors.text} style={styles.detailRowChevron} />
-      </TouchableOpacity>
-    );
-  }
-
-  return <View style={styles.detailRow}>{contentElement}</View>;
-};
-
 export default function ProfileScreen() {
-  const theme = useColorScheme() ?? 'light';
-  const isDark = theme === 'dark';
-  const dispatch = useDispatch<AppDispatch>();
+    const { colors } = useTheme();
+    const dispatch = useDispatch<AppDispatch>();
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Get profile data from Redux store with proper typing
-  const profileState = useSelector((state: RootState): ProfileState => state.profile as ProfileState);
-  const { data: userProfile, loading: profileLoading } = profileState;
+    const profileState = useSelector((state: RootState): ProfileState => state.profile as ProfileState);
+    const { data: userProfile, loading: profileLoading } = profileState;
 
-  const checkInState = useSelector((state: RootState) => state.checkIn);
-  const { loading: checkInLoading, todayCheckedIn, streak } = checkInState;
+    const checkInState = useSelector((state: RootState) => state.checkIn);
+    const { loading: checkInLoading, todayCheckedIn } = checkInState;
 
-  const authState = useSelector((state: RootState) => state.auth);
-  const { loading: logoutLoading } = authState;
+    const authState = useSelector((state: RootState) => state.auth);
+    const { loading: logoutLoading } = authState;
 
-  // Refresh profile data when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      // Only fetch if we are not currently loading and if there is no profile data yet.
-      // This prevents the infinite loop on repeated auth failures.
-      if (!profileLoading && !userProfile) {
-        dispatch(fetchProfile());
-      }
-    }, [dispatch, profileLoading, userProfile])
-  );
-
-  function getInitials(name: string) {
-    if (!name) return '';
-    return name.split(' ').map((n: string) => n[0]).join('').toUpperCase();
-  }
-
-  const handleOpenLink = async (url: string | null) => {
-    if (!url) return;
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      }
-    } catch (error) {
-      console.error('Error opening URL:', error);
-    }
-  };
-
-  const handleCheckIn = async () => {
-    try {
-      const result = await dispatch(performCheckIn()).unwrap();
-      Toast.show({
-        type: 'success',
-        text1: 'Success!',
-        text2: result.message,
-      });
-      // Refresh profile data after successful check-in
-      dispatch(fetchProfile());
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: error?.message || 'Failed to check in',
-      });
-    }
-  };
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(logout()).unwrap();
-              Toast.show({
-                type: 'success',
-                text1: 'Logged out successfully',
-              });
-              // Navigate to login page after successful logout
-              router.replace('/login');
-            } catch (error) {
-              Toast.show({
-                type: 'error',
-                text1: 'Logout failed',
-                text2: 'Please try again',
-              });
-            }
-          },
-        },
-      ]
+    useFocusEffect(
+        useCallback(() => {
+          if (!profileLoading && !userProfile) {
+            dispatch(fetchProfile());
+          }
+        }, [dispatch, profileLoading, userProfile])
     );
-  };
 
-  return (
-    <ScrollView style={styles.container} bounces={false}>
-      <LinearGradient
-        colors={isDark ? ['#1a1a1a', '#2a2a2a'] : ['#f8f9fa', '#e9ecef']}
-        style={styles.header}
-      >
-        <View style={styles.profileHeader}>
-          <View style={styles.initialsShadowWrapper}>
-            <View style={styles.initialsCircle}>
-              <ThemedText style={styles.initialsText} numberOfLines={1} adjustsFontSizeToFit>
-                {userProfile ? getInitials(userProfile.name) : ''}
-              </ThemedText>
+    const onRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        try {
+            await dispatch(fetchProfile()).unwrap();
+        } catch (error) {
+            Toast.show({
+                type: 'error',
+                text1: 'Failed to refresh profile',
+            });
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [dispatch]);
+
+    const handleCheckIn = async () => {
+        try {
+            const result = await dispatch(performCheckIn()).unwrap();
+            Toast.show({
+                type: 'success',
+                text1: 'Success!',
+                text2: result.message,
+            });
+            dispatch(fetchProfile());
+        } catch (error: any) {
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: error?.message || 'Failed to check in',
+            });
+        }
+    };
+
+    const handleLogout = () => {
+        Alert.alert('Logout', 'Are you sure you want to logout?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Logout',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await dispatch(logout()).unwrap();
+                        Toast.show({
+                          type: 'success',
+                          text1: 'Logged out successfully',
+                        });
+                        router.replace('/login');
+                    } catch (error) {
+                        Toast.show({ 
+                            type: 'error', 
+                            text1: 'Logout failed',
+                            text2: 'Please try again'
+                        });
+                    }
+                },
+            },
+        ]);
+    };
+
+    if (profileLoading && !userProfile) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
-          </View>
-          <View style={styles.profileInfo}>
-            {profileLoading ? (
-              <ThemedText style={styles.name}>Loading...</ThemedText>
-            ) : userProfile ? (
-              <>
-                <ThemedText style={styles.name}>{userProfile.name}</ThemedText>
-                <View style={[styles.levelBadge, { backgroundColor: levelColors[userProfile.level] || '#A0A0A0' }]}> 
-                  <ThemedText style={styles.levelText}>{userProfile.level}</ThemedText>
+        );
+    }
+
+    return (
+        <View style={{flex: 1, backgroundColor: colors.background}}>
+            <ScrollView 
+                contentContainerStyle={styles.contentContainer}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={isRefreshing}
+                        onRefresh={onRefresh}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
+                <View style={[styles.profileCard, { backgroundColor: colors.card }]}>
+                    <View style={styles.cardHeader}>
+                        <View style={[styles.avatar, { backgroundColor: colors.background }]}>
+                            {userProfile?.name ? (
+                                <Image
+                                    source={{ uri: `https://robohash.org/${userProfile.name}.png?set=set4` }}
+                                    style={styles.avatarImage}
+                                />
+                            ) : null}
+                        </View>
+                        <View style={styles.userInfo}>
+                            <ThemedText style={styles.name}>{userProfile?.name}</ThemedText>
+                            <ThemedText style={[styles.levelText, { color: colors.textSecondary }]}>{userProfile?.level}</ThemedText>
+                        </View>
+                    </View>
+                    <View style={styles.statsRow}>
+                        <View style={styles.statItem}>
+                            <ThemedText style={[styles.statValue, { color: colors.primary }]}>{userProfile?.streak?.current ?? 0}</ThemedText>
+                            <ThemedText style={[styles.statTitle, { color: colors.textSecondary }]}>Current Streak</ThemedText>
+                        </View>
+                        <View style={styles.statSeparator} />
+                        <View style={styles.statItem}>
+                            <ThemedText style={[styles.statValue, { color: colors.primary }]}>{userProfile?.streak?.longest ?? 0}</ThemedText>
+                            <ThemedText style={[styles.statTitle, { color: colors.textSecondary }]}>Longest Streak</ThemedText>
+                        </View>
+                    </View>
                 </View>
-              </>
-            ) : (
-              <ThemedText style={styles.name}>Profile not found</ThemedText>
-            )}
-          </View>
-        </View>
-      </LinearGradient>
 
-      {/* Check-in Card */}
-      <View style={styles.infoCard}>
-        <View style={styles.streakContainer}>
-          <ThemedText style={styles.streakText}>
-            Current Streak: <ThemedText style={styles.streakValue}>{userProfile?.streak?.current ?? 0} days</ThemedText>
-          </ThemedText>
-          <ThemedText style={styles.streakText}>
-            Longest Streak: <ThemedText style={styles.streakValue}>{userProfile?.streak?.longest ?? 0} days</ThemedText>
-          </ThemedText>
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.checkInButton,
-            todayCheckedIn && styles.checkInButtonDisabled
-          ]}
-          onPress={handleCheckIn}
-          disabled={todayCheckedIn || checkInLoading}
-          accessibilityLabel={todayCheckedIn ? "You've already checked in today" : "Check in for today"}
-        >
-          {checkInLoading ? (
-            <ActivityIndicator color={Colors.light.background} />
-          ) : (
-            <ThemedText style={styles.checkInButtonText}>
-              {todayCheckedIn ? "Already Checked In" : "Daily Check-in"}
-            </ThemedText>
-          )}
-        </TouchableOpacity>
-      </View>
+                <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
+                    <View style={styles.detailRow}>
+                        <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>State</ThemedText>
+                        <ThemedText style={styles.detailValue}>{userProfile?.profile?.location || 'Not specified'}</ThemedText>
+                    </View>
 
-      {/* Profile Details Card */}
-      {userProfile?.profile ? (
-        <View style={styles.infoCard}>
-          <ProfileDetailRow icon="person.text.rectangle" title="Bio" content={userProfile.profile.bio} />
-          <ProfileDetailRow icon="location.fill" title="Location" content={userProfile.profile.location} />
-          <ProfileDetailRow icon="link" title="Website" content={userProfile.profile.website} onPress={() => handleOpenLink(userProfile.profile.website)} />
-          <ProfileDetailRow icon="chevron.left.slash.chevron.right" title="GitHub" content={userProfile.profile.github} onPress={() => handleOpenLink(userProfile.profile.github)} />
-          <ProfileDetailRow icon="network" title="LinkedIn" content={userProfile.profile.linkedin} onPress={() => handleOpenLink(userProfile.profile.linkedin)} />
-        </View>
-      ) : (
-        <View style={styles.infoCard}>
-          <ThemedText>No profile details available.</ThemedText>
-        </View>
-      )}
+                    {userProfile?.profile?.skills && userProfile.profile.skills.length > 0 && (
+                        <>
+                            <View style={[styles.separator, { backgroundColor: colors.background }]} />
+                            <View style={styles.detailRow}>
+                                <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>Skills</ThemedText>
+                                <View style={styles.skillsContainer}>
+                                    {userProfile.profile.skills.map((skill: { name: string }, index: number) => (
+                                        <View style={[styles.skillBadge, { backgroundColor: colors.background }]}>
+                                            <ThemedText style={styles.skillText}>{skill.name}</ThemedText>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        </>
+                    )}
+                </View>
 
-      <View style={styles.content}>
-        <TouchableOpacity 
-          style={styles.editProfileButton} 
-          onPress={() => router.push('/profile/edit')}
-          accessibilityLabel="Edit your profile"
-        >
-          <ThemedText style={styles.editProfileText}>Edit Profile</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          disabled={logoutLoading}
-          accessibilityLabel="Log out of your account"
-        >
-          {logoutLoading ? (
-            <ActivityIndicator color="#FF3B30" size="small" />
-          ) : (
-            <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="#FF3B30" />
-          )}
-          <ThemedText style={styles.logoutText}>Log Out</ThemedText>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
+                <View style={[styles.actionsCard, { backgroundColor: colors.card }]}>
+                    <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/profile/edit')}>
+                        <FontAwesome5 name="user-edit" size={20} color={colors.tint} style={styles.actionIcon} />
+                        <ThemedText style={[styles.actionText, { color: colors.tint }]}>Edit Profile</ThemedText>
+                        <FontAwesome5 name="chevron-right" size={16} color={colors.tint} />
+                    </TouchableOpacity>
+                    <View style={[styles.actionSeparator, {backgroundColor: colors.background}]} />
+                    <TouchableOpacity style={styles.actionRow} onPress={handleLogout} disabled={logoutLoading}>
+                         {logoutLoading ? <ActivityIndicator color="#FF3B30" /> : (
+                             <>
+                                <FontAwesome5 name="sign-out-alt" size={20} color="#FF3B30" style={styles.actionIcon} />
+                                <ThemedText style={[styles.actionText, {color: "#FF3B30"}]}>Log Out</ThemedText>
+                             </>
+                         )}
+                    </TouchableOpacity>
+                </View>
+
+            </ScrollView>
+            <TouchableOpacity
+                style={[styles.fab, {backgroundColor: colors.tint}, (todayCheckedIn || checkInLoading) && styles.fabDisabled]}
+                onPress={handleCheckIn}
+                disabled={todayCheckedIn || checkInLoading}
+            >
+                {checkInLoading ? <ActivityIndicator color="#FFFFFF" /> : (
+                    <>
+                        <FontAwesome5 name="hammer" size={20} color="#FFFFFF" />
+                        <ThemedText style={styles.fabText}>Commit</ThemedText>
+                    </>
+                )}
+            </TouchableOpacity>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 30,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  initialsShadowWrapper: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    marginBottom: 12,
-  },
-  initialsCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.light.tint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initialsText: {
-    color: '#fff',
-    fontSize: 36,
-    fontWeight: 'bold',
-  },
-  profileInfo: {
-    alignItems: 'center',
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  levelBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  levelText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  infoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    margin: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  sectionContent: {
-    fontSize: 15,
-    color: '#666',
-    lineHeight: 22,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginVertical: 12,
-  },
-  content: {
-    padding: 16,
-  },
-  editProfileButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 20,
-    backgroundColor: Colors.light.tint,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  editProfileText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
-  },
-  logoutText: {
-    color: '#FF3B30',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  streakContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  streakText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  streakValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  checkInButton: {
-    backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  checkInButtonDisabled: {
-    backgroundColor: Colors.light.tabIconDefault,
-  },
-  checkInButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  detailRowContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  detailRowIcon: {
-    marginRight: 12,
-  },
-  detailRowTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  detailRowText: {
-    flex: 1,
-    color: '#666',
-    textAlign: 'right',
-    marginLeft: 16,
-  },
-  detailRowChevron: {
-    marginLeft: 8,
-    opacity: 0.6,
-  },
+    container: {
+        flex: 1,
+    },
+    contentContainer: {
+        paddingTop: 80,
+        paddingHorizontal: 16,
+        paddingBottom: 24,
+    },
+    profileCard: {
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 24,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    avatar: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 20,
+        overflow: 'hidden',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+    },
+    userInfo: {
+        flex: 1,
+    },
+    name: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    levelText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    statsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        borderTopWidth: 1,
+        borderTopColor: '#E0E0E0',
+        paddingTop: 16,
+    },
+    statItem: {
+        alignItems: 'center',
+    },
+    statValue: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    statTitle: {
+        fontSize: 12,
+        textTransform: 'uppercase',
+    },
+    statSeparator: {
+        width: 1,
+        backgroundColor: '#E0E0E0',
+    },
+    detailsCard: {
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 24,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 8,
+    },
+    detailLabel: {
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    detailValue: {
+        fontSize: 16,
+        flexShrink: 1,
+        textAlign: 'right',
+    },
+    skillsContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
+    },
+    skillBadge: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        marginLeft: 8,
+        marginTop: 8,
+    },
+    skillText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    separator: {
+        height: 1,
+        marginVertical: 10,
+    },
+    actionsCard: {
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        marginBottom: 24,
+    },
+    actionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 18,
+        paddingHorizontal: 10,
+    },
+    actionIcon: {
+        marginRight: 16,
+        width: 24,
+        textAlign: 'center',
+    },
+    actionText: {
+        flex: 1,
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    actionSeparator: {
+        height: 1,
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 150,
+        right: 20,
+        borderRadius: 30,
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 8,
+    },
+    fabDisabled: {
+        backgroundColor: '#A0A0A0',
+    },
+    fabText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 8,
+    }
 }); 

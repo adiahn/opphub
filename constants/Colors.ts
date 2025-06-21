@@ -16,6 +16,8 @@ export const Colors = {
     tabIconSelected: '#003366',
     primary: '#007AFF',
     secondary: '#5856D6',
+    card: '#FFFFFF',
+    textSecondary: '#666666',
   },
   dark: {
     text: '#fff',
@@ -26,5 +28,7 @@ export const Colors = {
     tabIconSelected: '#003366',
     primary: '#0A84FF',
     secondary: '#5E5CE6',
+    card: '#2C2C2E',
+    textSecondary: '#A0A0A0',
   },
 };
