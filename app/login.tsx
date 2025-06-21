@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearError, login } from '../services/authSlice';
 import type { AppDispatch, RootState } from '../services/store';
@@ -104,9 +104,7 @@ export default function LoginScreen() {
           ]}
         >
           <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>C</Text>
-            </View>
+            <Image source={require('../src/1.png')} style={styles.logo} />
           </View>
           <Text style={styles.welcomeText}>Welcome Back</Text>
           <Text style={styles.subtitleText}>Sign in to continue</Text>
@@ -221,24 +219,12 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     marginBottom: 20,
-  },
-  logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.light.tint,
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.light.tint,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  logoText: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: '#fff',
+  logo: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
   },
   welcomeText: {
     fontSize: 28,
