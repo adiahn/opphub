@@ -3,11 +3,27 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useCommunityLeaderboard } from '@/hooks/useCommunity';
-import { CommunityUser } from '@/services/api';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Define the CommunityUser type locally since the import is failing
+interface CommunityUser {
+  _id: string;
+  name: string;
+  level: string;
+  profile: {
+    bio?: string;
+    skills?: Array<{
+      _id: string;
+      name: string;
+      level: string;
+    }>;
+  };
+}
 
 const levelColors: Record<string, { start: string; end: string }> = {
   'Newcomer': { start: '#d3d3d3', end: '#a9a9a9' },
@@ -19,10 +35,12 @@ const levelColors: Record<string, { start: string; end: string }> = {
   'Legend': { start: '#ec7063', end: '#c0392b' },
 };
 
+const skillLevels = ['All', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+
 const UserCard = ({ item }: { item: CommunityUser }) => {
   const router = useRouter();
   const theme = useColorScheme() ?? 'light';
-  const initials = item.name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const initials = item.name.split(' ').map((n: string) => n[0]).join('').toUpperCase();
   const topSkills = item.profile.skills?.slice(0, 3) || [];
   const levelColor = levelColors[item.level] || levelColors['Newcomer'];
 
@@ -54,7 +72,7 @@ const UserCard = ({ item }: { item: CommunityUser }) => {
         </View>
         <View style={styles.cardFooter}>
           <View style={styles.skillsContainer}>
-            {topSkills.map(skill => (
+            {topSkills.map((skill: { _id: string; name: string }) => (
               <View key={skill._id} style={styles.skillBadge}>
                 <ThemedText style={styles.skillText}>{skill.name}</ThemedText>
               </View>
@@ -69,7 +87,11 @@ const UserCard = ({ item }: { item: CommunityUser }) => {
   );
 };
 
-export default function CommunityScreen() {
+export default function SkillsBankScreen() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('All');
+  const [showFilters, setShowFilters] = useState(false);
+
   const {
     data,
     isLoading,
@@ -79,7 +101,34 @@ export default function CommunityScreen() {
     isFetchingNextPage
   } = useCommunityLeaderboard();
 
-  const users = data?.pages.flatMap(page => page.users) ?? [];
+  const allUsers = data?.pages.flatMap(page => page.users) ?? [];
+
+  // Filter users based on search query and skill level
+  const filteredUsers = useMemo(() => {
+    let filtered = allUsers;
+
+    // Filter by search query (name or skills)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(user => 
+        user.name.toLowerCase().includes(query) ||
+        user.profile.skills?.some(skill => 
+          skill.name.toLowerCase().includes(query)
+        )
+      );
+    }
+
+    // Filter by skill level
+    if (selectedLevel !== 'All') {
+      filtered = filtered.filter(user => 
+        user.profile.skills?.some(skill => 
+          skill.level === selectedLevel
+        )
+      );
+    }
+
+    return filtered;
+  }, [allUsers, searchQuery, selectedLevel]);
 
   const loadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -98,7 +147,7 @@ export default function CommunityScreen() {
   if (isError) {
     return (
       <ThemedView style={styles.centered}>
-        <ThemedText>Failed to load the community leaderboard.</ThemedText>
+        <ThemedText>Failed to load the skills bank.</ThemedText>
       </ThemedView>
     );
   }
@@ -106,11 +155,70 @@ export default function CommunityScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <ThemedText style={styles.title}>Community Hub</ThemedText>
-        <ThemedText style={styles.subtitle}>Discover and connect with top talent.</ThemedText>
+        <ThemedText style={styles.title}>Skills Bank</ThemedText>
+        <ThemedText style={styles.subtitle}>Find talented people for your projects</ThemedText>
       </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name or skills..."
+            placeholderTextColor="#666"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#666" />
+            </TouchableOpacity>
+          )}
+        </View>
+        <TouchableOpacity 
+          style={styles.filterButton}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Ionicons name="filter" size={20} color={Colors.light.tint} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Filter Options */}
+      {showFilters && (
+        <View style={styles.filterContainer}>
+          <ThemedText style={styles.filterTitle}>Skill Level:</ThemedText>
+          <View style={styles.filterOptions}>
+            {skillLevels.map(level => (
+              <TouchableOpacity
+                key={level}
+                style={[
+                  styles.filterOption,
+                  selectedLevel === level && styles.filterOptionActive
+                ]}
+                onPress={() => setSelectedLevel(level)}
+              >
+                <ThemedText style={[
+                  styles.filterOptionText,
+                  selectedLevel === level && styles.filterOptionTextActive
+                ]}>
+                  {level}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Results Count */}
+      <View style={styles.resultsContainer}>
+        <ThemedText style={styles.resultsText}>
+          {filteredUsers.length} {filteredUsers.length === 1 ? 'person' : 'people'} found
+        </ThemedText>
+      </View>
+
       <FlatList
-        data={users}
+        data={filteredUsers}
         renderItem={({ item }) => <UserCard item={item} />}
         keyExtractor={(item) => item._id}
         numColumns={2}
@@ -119,6 +227,17 @@ export default function CommunityScreen() {
         onEndReachedThreshold={0.5}
         ListFooterComponent={isFetchingNextPage ? <ActivityIndicator style={{ marginVertical: 20 }} color={Colors.light.tint} /> : null}
         columnWrapperStyle={styles.row}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="people-outline" size={64} color="#ccc" />
+            <ThemedText style={styles.emptyText}>
+              {searchQuery || selectedLevel !== 'All' 
+                ? 'No people found matching your criteria' 
+                : 'No people available at the moment'
+              }
+            </ThemedText>
+          </View>
+        }
       />
     </SafeAreaView>
   );
@@ -150,6 +269,89 @@ const styles = StyleSheet.create({
     color: '#6A6A6E',
     marginTop: 4,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  filterButton: {
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  filterContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  filterOption: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  filterOptionActive: {
+    backgroundColor: Colors.light.tint,
+    borderColor: Colors.light.tint,
+  },
+  filterOptionText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  filterOptionTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  resultsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  resultsText: {
+    fontSize: 14,
+    color: '#666',
+  },
   listContent: {
     paddingHorizontal: 15,
     paddingTop: 10,
@@ -168,7 +370,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     overflow: Platform.OS === 'android' ? 'hidden' : 'visible',
-    transition: 'transform 0.2s ease-in-out',
   },
   cardGradient: {
     flex: 1,
@@ -245,5 +446,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     color: '#fff',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 16,
   },
 }); 

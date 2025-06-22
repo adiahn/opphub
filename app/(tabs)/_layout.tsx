@@ -8,7 +8,7 @@ import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 const TAB_CONFIG = [
   { name: 'home', label: 'Home', icon: 'home-outline' },
   { name: 'search', label: 'Search', icon: 'search-outline' },
-  { name: 'community', label: 'Community', icon: 'people-outline' },
+  { name: 'community', label: 'Skills Bank', icon: 'people-outline' },
   { name: 'profile', label: 'Profile', icon: 'person-outline' },
 ];
 
