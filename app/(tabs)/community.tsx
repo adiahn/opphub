@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Platform, Pressable, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Define the CommunityUser type locally since the import is failing
@@ -40,13 +40,13 @@ const skillLevels = ['All', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
 const UserCard = ({ item }: { item: CommunityUser }) => {
   const router = useRouter();
   const theme = useColorScheme() ?? 'light';
-  const initials = item.name.split(' ').map((n: string) => n[0]).join('').toUpperCase();
-  const topSkills = item.profile.skills?.slice(0, 3) || [];
   const levelColor = levelColors[item.level] || levelColors['Newcomer'];
+  
+  // Generate RoboHash URL using user ID
+  const robohashUrl = `https://robohash.org/${item._id}?size=200x200&set=set4`;
 
   const handlePress = () => {
-    // router.push(`/user/${item._id}`);
-    console.log(`Navigate to user ${item._id}`);
+    router.push(`/user/${item._id}`);
   };
 
   return (
@@ -62,8 +62,12 @@ const UserCard = ({ item }: { item: CommunityUser }) => {
           <ThemedText style={styles.levelText}>{item.level}</ThemedText>
         </View>
         <View style={styles.cardBody}>
-          <View style={styles.initialsCircle}>
-            <ThemedText style={styles.initialsText}>{initials}</ThemedText>
+          <View style={styles.profileImageContainer}>
+            <Image 
+              source={{ uri: robohashUrl }}
+              style={styles.profileImage}
+              resizeMode="cover"
+            />
           </View>
           <ThemedText style={styles.userName} numberOfLines={1}>{item.name}</ThemedText>
           <ThemedText style={styles.userBio} numberOfLines={2}>
@@ -72,12 +76,12 @@ const UserCard = ({ item }: { item: CommunityUser }) => {
         </View>
         <View style={styles.cardFooter}>
           <View style={styles.skillsContainer}>
-            {topSkills.map((skill: { _id: string; name: string }) => (
+            {item.profile.skills?.slice(0, 3).map((skill) => (
               <View key={skill._id} style={styles.skillBadge}>
                 <ThemedText style={styles.skillText}>{skill.name}</ThemedText>
               </View>
             ))}
-            {topSkills.length === 0 && (
+            {(!item.profile.skills || item.profile.skills.length === 0) && (
               <ThemedText style={styles.skillText}>No skills listed</ThemedText>
             )}
           </View>
@@ -154,34 +158,36 @@ export default function SkillsBankScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header with Search, Filter, and Title */}
       <View style={styles.header}>
-        <ThemedText style={styles.title}>Skills Bank</ThemedText>
-        <ThemedText style={styles.subtitle}>Find talented people for your projects</ThemedText>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by name or skills..."
-            placeholderTextColor="#666"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#666" />
-            </TouchableOpacity>
-          )}
+        <View style={styles.headerTop}>
+          <View style={styles.titleContainer}>
+            <ThemedText style={styles.title}>Skills Bank</ThemedText>
+          </View>
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by name or skills..."
+                placeholderTextColor="#666"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} color="#666" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons name="filter" size={20} color={Colors.light.tint} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Ionicons name="filter" size={20} color={Colors.light.tint} />
-        </TouchableOpacity>
       </View>
 
       {/* Filter Options */}
@@ -259,21 +265,16 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 10,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1C1C1E',
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#6A6A6E',
-    marginTop: 4,
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   searchContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
     alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 15,
   },
   searchBar: {
     flex: 1,
@@ -283,7 +284,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    marginRight: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -307,6 +307,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  titleContainer: {
+    alignItems: 'flex-start',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1C1C1E',
   },
   filterContainer: {
     paddingHorizontal: 20,
@@ -342,7 +350,6 @@ const styles = StyleSheet.create({
   },
   filterOptionTextActive: {
     color: '#fff',
-    fontWeight: '600',
   },
   resultsContainer: {
     paddingHorizontal: 20,
@@ -395,19 +402,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 5,
   },
-  initialsCircle: {
+  profileImageContainer: {
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    overflow: 'hidden',
     marginBottom: 12,
   },
-  initialsText: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
+  profileImage: {
+    width: '100%',
+    height: '100%',
   },
   userName: {
     fontSize: 18,

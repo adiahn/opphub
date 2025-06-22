@@ -6,7 +6,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import Toast from 'react-native-toast-message';
+import 'react-native-reanimated';
+import { Toast } from 'react-native-toast-message/lib/src/Toast';
 import { Provider } from 'react-redux';
 import { AuthNavigator } from '../components/AuthNavigator';
 import { store } from '../services/store';
@@ -22,16 +23,13 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
+  const colorScheme = useColorScheme();
+  const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
@@ -42,12 +40,6 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
@@ -57,8 +49,10 @@ function RootLayoutNav() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="signup" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
             <Stack.Screen name="post/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
           </Stack>
           <Toast />
         </ThemeProvider>
