@@ -87,6 +87,9 @@ export const login = createAsyncThunk(
       }
       
       // Handle network errors or other unexpected issues
+      if (error.message && error.message.toLowerCase().includes('network')) {
+        return rejectWithValue('Unable to connect to the server. Please check your internet connection and try again.');
+      }
       return rejectWithValue(error.message || 'Login failed due to an unknown error.');
     }
   }

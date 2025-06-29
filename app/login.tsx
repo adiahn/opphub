@@ -13,6 +13,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
+  const [showAuthError, setShowAuthError] = useState(true);
 
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error: authError, isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -39,7 +40,12 @@ export default function LoginScreen() {
   // Clear auth error when component mounts
   useEffect(() => {
     dispatch(clearError());
+    setShowAuthError(true);
   }, [dispatch]);
+
+  useEffect(() => {
+    if (authError) setShowAuthError(true);
+  }, [authError]);
 
   // Navigate to home when authenticated
   useEffect(() => {
@@ -122,9 +128,32 @@ export default function LoginScreen() {
           ]}
         >
           {/* General Error Message */}
-          {authError && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{authError}</Text>
+          {authError && showAuthError && (
+            <View style={
+              authError.includes('Unable to connect to the server')
+                ? [styles.errorBanner, styles.networkErrorBanner]
+                : styles.errorBanner
+            }>
+              <Ionicons
+                name={
+                  authError.includes('Unable to connect to the server')
+                    ? 'cloud-offline-outline'
+                    : 'alert-circle-outline'
+                }
+                size={22}
+                color="#fff"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.errorBannerText}>{authError}</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowAuthError(false);
+                  dispatch(clearError());
+                }}
+                style={styles.errorBannerDismiss}
+              >
+                <Ionicons name="close" size={20} color="#fff" />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -307,18 +336,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  errorContainer: {
-    backgroundColor: '#FFE5E5',
-    borderWidth: 1,
-    borderColor: '#FFCCCC',
-    borderRadius: 8,
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e74c3c',
     padding: 12,
+    borderRadius: 8,
     marginBottom: 16,
+    marginHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  errorText: {
-    color: '#D32F2F',
-    fontSize: 14,
-    textAlign: 'center',
+  errorBannerText: {
+    color: '#fff',
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  errorBannerDismiss: {
+    marginLeft: 8,
+    padding: 4,
   },
   inputContainerError: {
     borderColor: '#D32F2F',
@@ -330,5 +370,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
     marginLeft: 12,
+  },
+  networkErrorBanner: {
+    backgroundColor: '#f39c12', // orange for network errors
   },
 }); 

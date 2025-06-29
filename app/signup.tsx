@@ -20,7 +20,6 @@ export default function SignupScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error: authError } = useSelector((state: RootState) => state.auth);
 
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
@@ -39,7 +38,6 @@ export default function SignupScreen() {
     ]).start();
   }, []);
 
-  // Clear auth error when component mounts
   useEffect(() => {
     dispatch(clearError());
   }, [dispatch]);
@@ -74,14 +72,9 @@ export default function SignupScreen() {
   };
 
   const handleSignup = async () => {
-    // Clear previous errors
     setErrors({});
     dispatch(clearError());
-    
-    // Clear any existing user data before signing up
     dispatch(clearUserData());
-    
-    // Validate form
     if (!validateForm()) {
       return;
     }
@@ -92,7 +85,6 @@ export default function SignupScreen() {
         router.replace('/(tabs)/home');
       }
     } catch (error) {
-      // Error is handled by the Redux slice
       console.error('Signup failed:', error);
     }
   };
