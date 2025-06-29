@@ -230,7 +230,7 @@ export default function HomeScreen() {
             colors={isDark ? ['#1a1a1a', '#2a2a2a'] : ['#f8f9fa', '#e9ecef']}
             style={styles.headerGradient}
           >
-            <Text style={styles.headerTitle}>Circle</Text>
+            <Text style={styles.headerTitle}>Q</Text>
           </LinearGradient>
         </View>
         <ScrollView
@@ -281,7 +281,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerRow}>
         <Ionicons name="ellipse-outline" size={32} color={Colors.light.tint} style={styles.logoIcon} />
-        <Text style={[styles.corporateTitle, { color: Colors.light.tint }]}>Circle</Text>
+        <Text style={[styles.corporateTitle, { color: Colors.light.tint }]}>Q</Text>
         <TouchableOpacity style={styles.filterBtn} onPress={() => setFilterModalVisible(true)}>
           <Ionicons name="filter" size={22} color={Colors.light.tint} />
         </TouchableOpacity>

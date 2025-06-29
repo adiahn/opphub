@@ -41,6 +41,7 @@ export const login = createAsyncThunk(
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       console.log('--- Starting login process... ---');
+      
       const response = await apiClient.post('/auth/login', credentials);
       const { accessToken, refreshToken, user } = response.data;
 
@@ -181,6 +182,11 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    clearUserData: (state) => {
+      // This action will be used to clear all user data when switching users
+      // The profile and checkIn slices will listen for this action
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     // --- Login ---
@@ -251,5 +257,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setTokens, clearError } = authSlice.actions;
+export const { setTokens, clearError, clearUserData } = authSlice.actions;
 export default authSlice.reducer; 

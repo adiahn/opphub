@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { clearError, signup } from '../services/authSlice';
+import { clearError, clearUserData, signup } from '../services/authSlice';
 import type { AppDispatch, RootState } from '../services/store';
 
 export default function SignupScreen() {
@@ -77,6 +77,9 @@ export default function SignupScreen() {
     // Clear previous errors
     setErrors({});
     dispatch(clearError());
+    
+    // Clear any existing user data before signing up
+    dispatch(clearUserData());
     
     // Validate form
     if (!validateForm()) {

@@ -53,7 +53,14 @@ export const updateProfile = createAsyncThunk(
 const profileSlice = createSlice({
   name: 'profile',
   initialState,
-  reducers: {},
+  reducers: {
+    clearProfile: (state) => {
+      state.data = null;
+      state.loading = false;
+      state.error = null;
+      state.lastFetched = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchProfile.pending, (state) => {
@@ -95,8 +102,32 @@ const profileSlice = createSlice({
           state.data.level = action.payload.level;
           state.data.xp = action.payload.xp;
         }
+      })
+      // Handle logout by listening to the auth/logout action type
+      .addCase('auth/logout/fulfilled', (state) => {
+        // Clear profile data when user logs out
+        state.data = null;
+        state.loading = false;
+        state.error = null;
+        state.lastFetched = null;
+      })
+      .addCase('auth/logout/rejected', (state) => {
+        // Also clear profile data if logout fails
+        state.data = null;
+        state.loading = false;
+        state.error = null;
+        state.lastFetched = null;
+      })
+      // Handle user data clearing when switching users
+      .addCase('auth/clearUserData', (state) => {
+        // Clear profile data when switching users
+        state.data = null;
+        state.loading = false;
+        state.error = null;
+        state.lastFetched = null;
       });
   },
 });
 
+export const { clearProfile } = profileSlice.actions;
 export default profileSlice.reducer; 

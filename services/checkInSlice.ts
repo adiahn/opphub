@@ -73,6 +73,41 @@ const checkInSlice = createSlice({
       .addCase(performCheckIn.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      // Handle logout by listening to the auth/logout action type
+      .addCase('auth/logout/fulfilled', (state) => {
+        // Clear checkIn data when user logs out
+        state.loading = false;
+        state.error = null;
+        state.lastCheckIn = null;
+        state.todayCheckedIn = false;
+        state.streak = {
+          current: 0,
+          longest: 0
+        };
+      })
+      .addCase('auth/logout/rejected', (state) => {
+        // Also clear checkIn data if logout fails
+        state.loading = false;
+        state.error = null;
+        state.lastCheckIn = null;
+        state.todayCheckedIn = false;
+        state.streak = {
+          current: 0,
+          longest: 0
+        };
+      })
+      // Handle user data clearing when switching users
+      .addCase('auth/clearUserData', (state) => {
+        // Clear checkIn data when switching users
+        state.loading = false;
+        state.error = null;
+        state.lastCheckIn = null;
+        state.todayCheckedIn = false;
+        state.streak = {
+          current: 0,
+          longest: 0
+        };
       });
   }
 });

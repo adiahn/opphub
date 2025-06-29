@@ -47,9 +47,10 @@ export default function RootLayout() {
           <AuthNavigator />
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="signup" options={{ headerShown: false }} />
-            <Stack.Screen name="post/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="post" options={{ headerShown: false }} />
             <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />

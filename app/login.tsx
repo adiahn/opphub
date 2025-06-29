@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Image, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { clearError, login } from '../services/authSlice';
+import { clearError, clearUserData, login } from '../services/authSlice';
 import type { AppDispatch, RootState } from '../services/store';
 
 export default function LoginScreen() {
@@ -69,6 +69,9 @@ export default function LoginScreen() {
     setErrors({});
     dispatch(clearError());
     
+    // Clear any existing user data before logging in
+    dispatch(clearUserData());
+    
     // Validate form
     if (!validateForm()) {
       return;
@@ -109,8 +112,6 @@ export default function LoginScreen() {
           <Text style={styles.welcomeText}>Welcome Back</Text>
           <Text style={styles.subtitleText}>Sign in to continue</Text>
         </Animated.View>
-
-        {/* Login Form */}
         <Animated.View 
           style={[
             styles.formContainer,

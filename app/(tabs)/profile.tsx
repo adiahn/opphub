@@ -35,20 +35,22 @@ export default function ProfileScreen() {
     const { loading: checkInLoading, todayCheckedIn } = checkInState;
 
     const authState = useSelector((state: RootState) => state.auth);
-    const { loading: logoutLoading } = authState;
+    const { loading: logoutLoading, isAuthenticated } = authState;
 
     useFocusEffect(
         useCallback(() => {
-          if (!profileLoading && !userProfile) {
+          if (isAuthenticated && !profileLoading && !userProfile) {
             dispatch(fetchProfile());
           }
-        }, [dispatch, profileLoading, userProfile])
+        }, [dispatch, isAuthenticated, profileLoading, userProfile])
     );
 
     const onRefresh = useCallback(async () => {
         setIsRefreshing(true);
         try {
-            await dispatch(fetchProfile()).unwrap();
+            if (isAuthenticated) {
+                await dispatch(fetchProfile()).unwrap();
+            }
         } catch (error) {
             Toast.show({
                 type: 'error',
@@ -57,7 +59,7 @@ export default function ProfileScreen() {
         } finally {
             setIsRefreshing(false);
         }
-    }, [dispatch]);
+    }, [dispatch, isAuthenticated]);
 
     const handleCheckIn = async () => {
         try {
