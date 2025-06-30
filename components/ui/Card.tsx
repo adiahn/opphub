@@ -1,3 +1,4 @@
+import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Link } from 'expo-router';
 import { Image, ImageStyle, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
@@ -35,14 +36,16 @@ export function Card({
   imageStyle,
 }: CardProps) {
   const theme = useColorScheme() ?? 'light';
-  const isDark = theme === 'dark';
+  const colorSet = Colors[theme];
 
   return (
     <Link href={`/post/${id}`} asChild>
       <Pressable style={({ pressed }) => [
         styles.container,
         {
-          backgroundColor: isDark ? '#23272F' : '#fff',
+          backgroundColor: colorSet.card,
+          borderColor: theme === 'dark' ? '#23272F' : '#eee',
+          shadowColor: colorSet.icon,
           transform: [{ scale: pressed ? 0.98 : 1 }],
           shadowOpacity: pressed ? 0.18 : 0.10,
         },
@@ -52,16 +55,16 @@ export function Card({
           {imageUrl && (
             <Image
               source={{ uri: imageUrl }}
-              style={[styles.image, imageStyle]}
+              style={[styles.image, { backgroundColor: theme === 'dark' ? '#23272F' : '#eee' }, imageStyle]}
               resizeMode="cover"
             />
           )}
           <View style={styles.infoContainer}>
-            <ThemedText style={styles.title} numberOfLines={2}>{title}</ThemedText>
-            <ThemedText style={styles.description} numberOfLines={2}>{description}</ThemedText>
+            <ThemedText style={[styles.title, { color: colorSet.text }]} numberOfLines={2}>{title}</ThemedText>
+            <ThemedText style={[styles.description, { color: colorSet.textSecondary }]} numberOfLines={2}>{description}</ThemedText>
             <View style={styles.metaRow}>
-              {category && <ThemedText style={styles.category}>{category}</ThemedText>}
-              <ThemedText style={styles.date}>{date}</ThemedText>
+              {category && <ThemedText style={[styles.category, { color: colorSet.primary, backgroundColor: theme === 'dark' ? '#23272F' : '#E5E8F0' }]}>{category}</ThemedText>}
+              <ThemedText style={[styles.date, { color: colorSet.textSecondary }]}>{date}</ThemedText>
             </View>
           </View>
         </View>
@@ -77,15 +80,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#eee',
     marginBottom: 16,
     marginHorizontal: 8,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
-    backgroundColor: '#fff',
     padding: 0,
   },
   row: {
@@ -97,7 +97,6 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 12,
-    backgroundColor: '#eee',
     marginRight: 14,
     marginLeft: 8,
   },
@@ -111,11 +110,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 4,
-    color: '#222',
   },
   description: {
     fontSize: 13,
-    color: '#444',
     marginBottom: 8,
     lineHeight: 18,
   },
@@ -126,8 +123,6 @@ const styles = StyleSheet.create({
   },
   category: {
     fontSize: 12,
-    color: '#4B72FA',
-    backgroundColor: '#E5E8F0',
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -136,6 +131,5 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 12,
-    color: '#888',
   },
 }); 

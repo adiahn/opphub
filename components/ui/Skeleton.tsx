@@ -1,3 +1,4 @@
+import { useColorScheme } from '@/hooks/useColorScheme';
 import React from 'react';
 import { DimensionValue, StyleSheet, View, ViewStyle } from 'react-native';
 
@@ -9,11 +10,13 @@ interface SkeletonProps {
 }
 
 export const Skeleton: React.FC<SkeletonProps> = ({ width = '100%', height = 20, borderRadius = 8, style }) => {
+  const theme = useColorScheme() ?? 'light';
+  const bgColor = theme === 'dark' ? '#23272F' : '#E1E9EE';
   return (
     <View
       style={[
         styles.skeleton,
-        { width, height, borderRadius },
+        { width, height, borderRadius, backgroundColor: bgColor },
         style,
       ]}
     />
@@ -22,7 +25,6 @@ export const Skeleton: React.FC<SkeletonProps> = ({ width = '100%', height = 20,
 
 const styles = StyleSheet.create({
   skeleton: {
-    backgroundColor: '#E1E9EE',
     overflow: 'hidden',
     marginVertical: 4,
     opacity: 0.7,

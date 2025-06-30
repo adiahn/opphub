@@ -1,10 +1,11 @@
 import { ThemedText } from '@/components/ThemedText';
+import ProfileProgressBar from '@/components/ui/ProfileProgressBar';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { SkillLevel } from '@/types/user';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, ToastAndroid, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
@@ -131,19 +132,17 @@ export default function EditProfileScreen() {
     }
   }, [profile]);
 
-  // Calculate completion status
-  const completionStatus = useMemo(() => {
-    return {
-      profile: !!(profile?.name && skill && location),
-    };
-  }, [profile?.name, skill, location]);
-
-  // Calculate overall progress
-  const overallProgress = useMemo(() => {
-    const total = Object.keys(completionStatus).length;
-    const completed = Object.values(completionStatus).filter(Boolean).length;
-    return Math.round((completed / total) * 100);
-  }, [completionStatus]);
+  // Calculate completion percentage
+  const completionFields = [
+    skill.trim(),
+    location.trim(),
+    website.trim(),
+    github.trim(),
+    linkedin.trim(),
+    (profile && profile.profile && profile.profile.skills && profile.profile.skills.length > 0) ? '1' : ''
+  ];
+  const filledFields = completionFields.filter(Boolean).length;
+  const completionPercent = (filledFields / completionFields.length) * 100;
 
   const handleSave = async () => {
     setError(null);
@@ -227,17 +226,13 @@ export default function EditProfileScreen() {
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 20 }}
+        contentContainerStyle={{ paddingTop: 20, paddingBottom: 32 }}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${overallProgress}%` }]} />
-          </View>
-          <ThemedText style={styles.progressText}>{overallProgress}% Complete</ThemedText>
-          <ThemedText style={styles.progressSubtext}>Complete your profile to stand out in the community</ThemedText>
-        </View>
+        {/* Profile Completion Progress Bar */}
+        <ProfileProgressBar percentage={completionPercent} />
 
-        <ProfileSection title="Profile Information" isComplete={completionStatus.profile}>
+        <ProfileSection title="Profile Information" isComplete={completionPercent === 100}>
           <View style={styles.formGroup}>
             <ThemedText style={styles.label}>Name</ThemedText>
             <ThemedText style={styles.value}>{profile?.name || ''}</ThemedText>
@@ -348,32 +343,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-  },
-  progressContainer: {
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.light.tint,
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 8,
-  },
-  progressSubtext: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
   },
   section: {
     marginBottom: 24,

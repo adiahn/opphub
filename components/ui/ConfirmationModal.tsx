@@ -24,7 +24,7 @@ export function ConfirmationModal({
   cancelText = 'Cancel',
   isDestructive = false,
 }: ConfirmationModalProps) {
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
 
   return (
     <Modal
@@ -33,8 +33,8 @@ export function ConfirmationModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
+      <View style={[styles.overlay, { backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.5)' }] }>
+        <View style={[styles.modalContainer, { backgroundColor: colors.card, shadowColor: colors.icon }] }>
           <ThemedText style={styles.title}>{title}</ThemedText>
           <ThemedText style={styles.message}>{message}</ThemedText>
           <View style={styles.buttonRow}>
@@ -48,7 +48,7 @@ export function ConfirmationModal({
               style={[styles.button, isDestructive ? { backgroundColor: '#FF3B30' } : { backgroundColor: colors.primary }]}
               onPress={onConfirm}
             >
-              <Text style={styles.buttonText}>{confirmText}</Text>
+              <Text style={[styles.buttonText, { color: '#fff' }]}>{confirmText}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -62,14 +62,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContainer: {
     width: '85%',
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -100,7 +98,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

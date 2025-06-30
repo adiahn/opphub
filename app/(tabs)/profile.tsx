@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
+import ProfileProgressBar from '@/components/ui/ProfileProgressBar';
 import { useTheme } from '@/hooks/useTheme';
 import { UserProfile } from '@/types';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -110,6 +111,18 @@ export default function ProfileScreen() {
         }
     };
 
+    // Calculate completion percentage
+    const completionFields = [
+        userProfile?.profile?.bio?.trim(),
+        userProfile?.profile?.location?.trim(),
+        userProfile?.profile?.website?.trim(),
+        userProfile?.profile?.github?.trim(),
+        userProfile?.profile?.linkedin?.trim(),
+        (userProfile?.profile?.skills && userProfile.profile.skills.length > 0) ? '1' : ''
+    ];
+    const filledFields = completionFields.filter(Boolean).length;
+    const completionPercent = (filledFields / completionFields.length) * 100;
+
     if (profileLoading && !userProfile) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }]}>
@@ -163,6 +176,8 @@ export default function ProfileScreen() {
                         <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>State</ThemedText>
                         <ThemedText style={styles.detailValue}>{userProfile?.profile?.location || 'Not specified'}</ThemedText>
                     </View>
+                    {/* Profile Completion Progress Bar */}
+                    <ProfileProgressBar percentage={completionPercent} />
 
                     {userProfile?.profile?.skills && userProfile.profile.skills.length > 0 && (
                         <>

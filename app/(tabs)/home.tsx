@@ -29,27 +29,41 @@ const CategoryPill = ({ category, isSelected, onPress }: { category: { id: 'all'
 
 const PostCard = ({ post, onPress }: { post: Post; onPress: () => void }) => {
   const theme = useColorScheme() ?? 'light';
+  const colorSet = Colors[theme];
   const isDark = theme === 'dark';
   const readLength = Math.max(1, Math.round(post.content.rendered.replace(/<[^>]+>/g, '').split(/\s+/).length / 200));
 
   return (
-    <TouchableOpacity style={styles.postCard} onPress={onPress}>
+    <TouchableOpacity
+      style={[
+        styles.postCard,
+        {
+          backgroundColor: colorSet.card,
+          shadowColor: colorSet.icon,
+          borderColor: isDark ? '#23272F' : 'rgba(0,0,0,0.04)',
+          shadowOpacity: isDark ? 0 : 0.15,
+          shadowRadius: isDark ? 0 : 16,
+          elevation: isDark ? 0 : 8,
+        },
+      ]}
+      onPress={onPress}
+    >
       <Image
         source={{ uri: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://via.placeholder.com/400x200' }}
-        style={styles.postImage}
+        style={[styles.postImage, { borderColor: isDark ? '#23272F' : 'rgba(0,0,0,0.04)' }]}
       />
-      <View style={styles.postContent}>
-        <ThemedText style={styles.postTitle} numberOfLines={2}>
+      <View style={[styles.postContent, { backgroundColor: colorSet.card }]}>
+        <ThemedText style={[styles.postTitle, { color: colorSet.text }]} numberOfLines={2}>
           {post.title.rendered}
         </ThemedText>
-        <View style={styles.postMeta}>
-          <View style={styles.postMetaItem}>
+        <View style={[styles.postMeta, { backgroundColor: colorSet.card }]}>
+          <View style={[styles.postMetaItem, { backgroundColor: colorSet.card }]}>
             <Ionicons name="time-outline" size={14} color={isDark ? '#999' : '#666'} />
-            <ThemedText style={styles.postMetaText}>{readLength} min read</ThemedText>
+            <ThemedText style={[styles.postMetaText, { color: colorSet.text }]}>{readLength} min read</ThemedText>
           </View>
-          <View style={styles.postMetaItem}>
+          <View style={[styles.postMetaItem, { backgroundColor: colorSet.card }]}>
             <Ionicons name="calendar-outline" size={14} color={isDark ? '#999' : '#666'} />
-            <ThemedText style={styles.postMetaText}>
+            <ThemedText style={[styles.postMetaText, { color: colorSet.text }]}>
               {new Date(post.date).toLocaleDateString()}
             </ThemedText>
           </View>
@@ -61,21 +75,35 @@ const PostCard = ({ post, onPress }: { post: Post; onPress: () => void }) => {
 
 const FreshPostCard = ({ post, onPress }: { post: Post; onPress: () => void }) => {
   const theme = useColorScheme() ?? 'light';
+  const colorSet = Colors[theme];
   const isDark = theme === 'dark';
 
   return (
-    <TouchableOpacity style={styles.freshPostCard} onPress={onPress}>
+    <TouchableOpacity
+      style={[
+        styles.freshPostCard,
+        {
+          backgroundColor: colorSet.card,
+          shadowColor: colorSet.icon,
+          borderColor: isDark ? '#23272F' : 'rgba(0,0,0,0.04)',
+          shadowOpacity: isDark ? 0 : 0.12,
+          shadowRadius: isDark ? 0 : 12,
+          elevation: isDark ? 0 : 6,
+        },
+      ]}
+      onPress={onPress}
+    >
       <Image
         source={{ uri: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://via.placeholder.com/200x200' }}
-        style={styles.freshPostImage}
+        style={[styles.freshPostImage, { borderColor: isDark ? '#23272F' : 'rgba(0,0,0,0.04)' }]}
       />
-      <View style={styles.freshPostContent}>
-        <ThemedText style={styles.freshPostTitle} numberOfLines={2}>
+      <View style={[styles.freshPostContent, { backgroundColor: colorSet.card }]}>
+        <ThemedText style={[styles.freshPostTitle, { color: colorSet.text }]} numberOfLines={2}>
           {post.title.rendered}
         </ThemedText>
-        <View style={styles.freshPostMeta}>
+        <View style={[styles.freshPostMeta, { backgroundColor: colorSet.card }]}>
           <Ionicons name="time-outline" size={12} color={isDark ? '#999' : '#666'} />
-          <ThemedText style={styles.freshPostMetaText}>
+          <ThemedText style={[styles.freshPostMetaText, { color: colorSet.text }]}>
             {new Date(post.date).toLocaleDateString()}
           </ThemedText>
         </View>
@@ -96,6 +124,7 @@ export default function HomeScreen() {
   const [scrollTopVisible, setScrollTopVisible] = useState(false);
   const scrollTopAnim = useRef(new Animated.Value(0)).current;
   const theme = useColorScheme() ?? 'light';
+  const colorSet = Colors[theme];
   const isDark = theme === 'dark';
   const [search, setSearch] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
@@ -224,36 +253,36 @@ export default function HomeScreen() {
 
   if (isLoading && page === 1) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colorSet.background }] }>
         <View style={styles.headerContainer}>
           <LinearGradient
-            colors={isDark ? ['#1a1a1a', '#2a2a2a'] : ['#f8f9fa', '#e9ecef']}
+            colors={isDark ? ['#18181b', '#23272F'] : ['#f8f9fa', '#e9ecef']}
             style={styles.headerGradient}
           >
-            <Text style={styles.headerTitle}>Q</Text>
+            <Text style={[styles.headerTitle, { color: colorSet.text } ]}>Q</Text>
           </LinearGradient>
         </View>
         <ScrollView
-          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} />}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={colorSet.primary} colors={[colorSet.primary]} />}
         >
           <View style={styles.sectionHeaderRow}>
-            <ThemedText style={styles.sectionTitle}>Fresh Posts</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: colorSet.text } ]}>Fresh Posts</ThemedText>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.freshPostsScroll}>
             {[...Array(3)].map((_, i) => (
-              <View key={i} style={styles.freshPostCard}>
+              <View key={i} style={[styles.freshPostCard, { backgroundColor: colorSet.card, shadowColor: colorSet.icon, borderColor: isDark ? '#23272F' : 'rgba(0,0,0,0.04)' } ]}>
                 <Skeleton width={150} height={100} borderRadius={12} style={{ marginBottom: 8 }} />
                 <Skeleton width={120} height={16} borderRadius={8} style={{ marginBottom: 4 }} />
                 <Skeleton width={80} height={12} borderRadius={6} />
               </View>
             ))}
           </ScrollView>
-          <View style={styles.sectionDivider} />
+          <View style={[styles.sectionDivider, { backgroundColor: isDark ? '#23272F' : 'rgba(0,0,0,0.08)' } ]} />
           <View style={styles.sectionHeaderRow}>
-            <ThemedText style={styles.sectionTitle}>Latest Posts</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: colorSet.text } ]}>Latest Posts</ThemedText>
           </View>
           {[...Array(3)].map((_, i) => (
-            <View key={i} style={styles.postCard}>
+            <View key={i} style={[styles.postCard, { backgroundColor: colorSet.card, shadowColor: colorSet.icon, borderColor: isDark ? '#23272F' : 'rgba(0,0,0,0.04)' } ]}>
               <Skeleton width="100%" height={200} borderRadius={12} style={{ marginBottom: 12 }} />
               <Skeleton width="80%" height={20} borderRadius={10} style={{ marginBottom: 8 }} />
               <Skeleton width="40%" height={16} borderRadius={8} />
@@ -266,24 +295,23 @@ export default function HomeScreen() {
 
   if (hasError) {
     return (
-      <ThemedView style={[styles.container, styles.centered]}>
+      <ThemedView style={[styles.container, styles.centered, { backgroundColor: colorSet.background }] }>
         <Text style={{ fontSize: 48, marginBottom: 16 }}>😕</Text>
-        <ThemedText style={{ fontSize: 18, marginBottom: 8 }}>Error loading content.</ThemedText>
-        <ThemedText style={{ color: '#888', marginBottom: 16 }}>Please check your connection or try again.</ThemedText>
-        <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
-          <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
+        <ThemedText style={{ fontSize: 18, marginBottom: 8, color: colorSet.text }}>Error loading content.</ThemedText>
+        <ThemedText style={{ color: colorSet.textSecondary, marginBottom: 16 }}>Please check your connection or try again.</ThemedText>
+        <TouchableOpacity onPress={onRefresh} style={[styles.retryButton, { backgroundColor: colorSet.primary }] }>
+          <ThemedText style={[styles.retryButtonText, { color: colorSet.card }]}>Retry</ThemedText>
         </TouchableOpacity>
       </ThemedView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colorSet.background }] }>
       <View style={styles.headerRow}>
-        <Ionicons name="ellipse-outline" size={32} color={Colors.light.tint} style={styles.logoIcon} />
-        <Text style={[styles.corporateTitle, { color: Colors.light.tint }]}>Q</Text>
-        <TouchableOpacity style={styles.filterBtn} onPress={() => setFilterModalVisible(true)}>
-          <Ionicons name="filter" size={22} color={Colors.light.tint} />
+        <Text style={[styles.corporateTitle, { color: isDark ? '#4A90E2' : colorSet.tint }]}>Q App</Text>
+        <TouchableOpacity style={[styles.filterBtn, { backgroundColor: isDark ? '#23272F' : '#f8fafd', shadowColor: colorSet.icon } ]} onPress={() => setFilterModalVisible(true)}>
+          <Ionicons name="filter" size={22} color={isDark ? '#4A90E2' : colorSet.tint} />
         </TouchableOpacity>
       </View>
       <Animated.ScrollView
@@ -294,8 +322,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={isLoading && page === 1}
             onRefresh={onRefresh}
-            colors={[Colors.light.tint]}
-            tintColor={Colors.light.tint}
+            colors={[colorSet.primary]}
+            tintColor={colorSet.primary}
           />
         }
         contentContainerStyle={{ paddingBottom: 140 }}
@@ -303,7 +331,7 @@ export default function HomeScreen() {
         {freshPosts && freshPosts.length > 0 && (
           <>
             <View style={styles.sectionHeaderRow}>
-              <ThemedText style={styles.sectionTitle}>Fresh Posts</ThemedText>
+              <ThemedText style={[styles.sectionTitle, { color: colorSet.text } ]}>Fresh Posts</ThemedText>
             </View>
             <ScrollView
               horizontal
@@ -319,12 +347,12 @@ export default function HomeScreen() {
                 />
               ))}
             </ScrollView>
-            <View style={styles.sectionDivider} />
+            <View style={[styles.sectionDivider, { backgroundColor: isDark ? '#23272F' : 'rgba(0,0,0,0.08)' } ]} />
           </>
         )}
 
         <View style={styles.sectionHeaderRow}>
-          <ThemedText style={styles.sectionTitle}>Latest Posts</ThemedText>
+          <ThemedText style={[styles.sectionTitle, { color: colorSet.text } ]}>Latest Posts</ThemedText>
         </View>
 
         {searchedPosts.map((post) => (
@@ -337,13 +365,24 @@ export default function HomeScreen() {
 
         {isLoadingMore && (
           <View style={styles.loadingMore}>
-            <ActivityIndicator color={Colors.light.tint} />
+            <ActivityIndicator color={colorSet.tint} />
           </View>
         )}
 
         {!isLoadingMore && hasMore && (
-          <TouchableOpacity style={styles.loadMoreButton} onPress={loadMore}>
-            <ThemedText style={styles.loadMoreText}>Load More</ThemedText>
+          <TouchableOpacity
+            style={[
+              styles.loadMoreButton,
+              { backgroundColor: isDark ? '#4A90E2' : 'rgba(0,122,255,0.1)' },
+            ]}
+            onPress={loadMore}
+          >
+            <ThemedText style={[
+              styles.loadMoreText,
+              { color: isDark ? '#fff' : colorSet.tint },
+            ]}>
+              Load More
+            </ThemedText>
           </TouchableOpacity>
         )}
       </Animated.ScrollView>
@@ -353,6 +392,12 @@ export default function HomeScreen() {
           style={[
             styles.scrollTopButton,
             {
+              backgroundColor: isDark ? '#4A90E2' : colorSet.tint,
+              shadowColor: colorSet.icon,
+              borderColor: isDark ? '#23272F' : 'rgba(0,0,0,0.04)',
+              shadowOpacity: isDark ? 0 : 0.18,
+              shadowRadius: isDark ? 0 : 8,
+              elevation: isDark ? 0 : 8,
               opacity: scrollTopAnim,
               transform: [
                 {
@@ -371,7 +416,7 @@ export default function HomeScreen() {
             activeOpacity={0.85}
             accessibilityLabel="Scroll to top"
           >
-            <Ionicons name="arrow-up" size={24} color="#fff" />
+            <Ionicons name="arrow-up" size={24} color={isDark ? '#fff' : colorSet.card} />
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -383,11 +428,11 @@ export default function HomeScreen() {
         transparent
         onRequestClose={() => setFilterModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Filter (Coming Soon)</Text>
-            <TouchableOpacity style={[styles.modalBtn, styles.modalBtnPrimary]} onPress={() => setFilterModalVisible(false)}>
-              <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText]}>Close</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.18)' } ]}>
+          <View style={[styles.modalContent, { backgroundColor: colorSet.card } ]}>
+            <Text style={[styles.modalTitle, { color: colorSet.text } ]}>Filter (Coming Soon)</Text>
+            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: isDark ? '#23272F' : '#f8fafd' }, styles.modalBtnPrimary]} onPress={() => setFilterModalVisible(false)}>
+              <Text style={[styles.modalBtnText, styles.modalBtnPrimaryText, { color: colorSet.card }]}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>

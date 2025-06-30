@@ -18,14 +18,14 @@ export function SearchBar({
   style,
 }: SearchBarProps) {
   const theme = useColorScheme() ?? 'light';
-  const isDark = theme === 'dark';
+  const colorSet = Colors[theme];
 
   return (
     <ThemedView
       style={[
         styles.container,
         {
-          backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7',
+          backgroundColor: theme === 'dark' ? '#23272F' : '#F2F2F7',
         },
         style,
       ]}
@@ -33,20 +33,20 @@ export function SearchBar({
       <IconSymbol
         name="magnifyingglass"
         size={20}
-        color={isDark ? Colors.dark.icon : Colors.light.icon}
+        color={colorSet.icon}
         style={styles.icon}
       />
       <TextInput
         style={[
           styles.input,
           {
-            color: isDark ? Colors.dark.text : Colors.light.text,
+            color: colorSet.text,
           },
         ]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={isDark ? '#666' : '#999'}
+        placeholderTextColor={theme === 'dark' ? colorSet.textSecondary : '#999'}
         returnKeyType="search"
         autoCapitalize="none"
         autoCorrect={false}

@@ -21,32 +21,32 @@ export function Button({
   disabled = false 
 }: ButtonProps) {
   const theme = useColorScheme() ?? 'light';
-  const isDark = theme === 'dark';
+  const colorSet = Colors[theme];
 
   const getButtonStyle = () => {
     switch (variant) {
       case 'secondary':
         return {
-          backgroundColor: isDark ? Colors.dark.secondary : Colors.light.secondary,
+          backgroundColor: colorSet.secondary,
         };
       case 'outline':
         return {
           backgroundColor: 'transparent',
           borderWidth: 1,
-          borderColor: isDark ? Colors.dark.text : Colors.light.text,
+          borderColor: colorSet.text,
         };
       default:
         return {
-          backgroundColor: isDark ? Colors.dark.primary : Colors.light.primary,
+          backgroundColor: colorSet.primary,
         };
     }
   };
 
   const getTextColor = () => {
     if (variant === 'outline') {
-      return isDark ? Colors.dark.text : Colors.light.text;
+      return colorSet.text;
     }
-    return '#FFFFFF';
+    return colorSet.card;
   };
 
   return (
