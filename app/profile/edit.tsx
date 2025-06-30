@@ -116,12 +116,18 @@ export default function EditProfileScreen() {
 
   // Update local state when profile data changes
   useEffect(() => {
-    if (profile) {
+    if (profile && profile.profile) {
       setSkill(profile.profile.bio || '');
       setLocation(profile.profile.location || '');
       setWebsite(profile.profile.website || '');
       setGithub(profile.profile.github || '');
       setLinkedin(profile.profile.linkedin || '');
+    } else {
+      setSkill('');
+      setLocation('');
+      setWebsite('');
+      setGithub('');
+      setLinkedin('');
     }
   }, [profile]);
 
@@ -172,8 +178,9 @@ export default function EditProfileScreen() {
       };
 
       const result = await dispatch(updateProfile(updateData)).unwrap();
+      console.log('UpdateProfile API result:', result);
       
-      // Update local state with the new data
+      // Update local state with the new data (now always complete)
       if (result && result.profile) {
         setSkill(result.profile.bio || '');
         setLocation(result.profile.location || '');
@@ -184,8 +191,7 @@ export default function EditProfileScreen() {
 
       setSuccess('Profile updated successfully!');
       showToast('Profile updated successfully!');
-      
-      // Navigate back after a short delay
+      // No need to refetch profile, backend returns full object
       setTimeout(() => {
         router.back();
       }, 1000);

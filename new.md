@@ -70,7 +70,7 @@
       "about": [
         {
           "href": "https://opportunitieshub.ng/wp-json/wp/v2/types/post"
-        }
+        } 
       ],
       "author": [
         {
