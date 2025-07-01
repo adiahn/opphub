@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Q",
-    "slug": "Q",
+    "name": "Opportunities Hub",
+    "slug": "opportunities-hub",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "newproject",
+    "scheme": "opportunities-hub",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -17,7 +17,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.Qapp"
+      "package": "com.opportunitieshub.app"
     },
     "web": {
       "bundler": "metro",

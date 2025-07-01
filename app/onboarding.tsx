@@ -24,8 +24,8 @@ interface OnboardingSlide {
 const onboardingSlides: OnboardingSlide[] = [
   {
     id: 1,
-    title: 'Welcome to Q',
-    description: 'Your gateway to a vibrant community of learners, creators, and innovators. Connect, share, and grow together.',
+    title: 'Welcome to Opportunities Hub',
+    description: 'Discover and connect with amazing opportunities that can transform your future.',
     icon: 'people-outline',
     backgroundColor: '#667eea',
     backgroundImage: require('../src/a.jpg'),
@@ -33,8 +33,8 @@ const onboardingSlides: OnboardingSlide[] = [
   },
   {
     id: 2,
-    title: 'Share Your Skills',
-    description: 'Showcase your expertise, projects, and achievements. Build your professional portfolio and get recognized.',
+    title: 'Build Your Skills',
+    description: 'Access curated learning resources and skill development programs to enhance your capabilities.',
     icon: 'star-outline',
     backgroundColor: '#764ba2',
     backgroundVideo: require('../src/c.mp4'),
@@ -42,8 +42,8 @@ const onboardingSlides: OnboardingSlide[] = [
   },
   {
     id: 3,
-    title: 'Connect & Collaborate',
-    description: 'Find like-minded individuals, join communities, and collaborate on exciting projects. Your network is your net worth.',
+    title: 'Find Opportunities',
+    description: 'Explore job listings, scholarships, business grants, and more opportunities tailored for Nigerian youth.',
     icon: 'rocket-outline',
     backgroundColor: '#f093fb',
     backgroundImage: require('../src/b.jpg'),
@@ -51,8 +51,8 @@ const onboardingSlides: OnboardingSlide[] = [
   },
   {
     id: 4,
-    title: 'Ready to Start?',
-    description: 'Join thousands of users who are already building their future with Q. Create your account and begin your journey.',
+    title: 'Join Our Community',
+    description: 'Join thousands of users who are already building their future with Opportunities Hub. Create your account and begin your journey.',
     icon: 'checkmark-circle-outline',
     backgroundColor: '#4facfe',
     backgroundImage: require('../src/a.jpg'),

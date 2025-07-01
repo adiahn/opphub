@@ -259,7 +259,7 @@ export default function HomeScreen() {
             colors={isDark ? ['#18181b', '#23272F'] : ['#f8f9fa', '#e9ecef']}
             style={styles.headerGradient}
           >
-            <Text style={[styles.headerTitle, { color: colorSet.text } ]}>Q</Text>
+            <Text style={[styles.headerTitle, { color: colorSet.text } ]}>Opportunities Hub</Text>
           </LinearGradient>
         </View>
         <ScrollView
@@ -309,7 +309,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colorSet.background }] }>
       <View style={styles.headerRow}>
-        <Text style={[styles.corporateTitle, { color: isDark ? '#4A90E2' : colorSet.tint }]}>Q App</Text>
+        <Text style={[styles.corporateTitle, { color: isDark ? '#4A90E2' : colorSet.tint }]}>Opportunities Hub</Text>
         <TouchableOpacity style={[styles.filterBtn, { backgroundColor: isDark ? '#23272F' : '#f8fafd', shadowColor: colorSet.icon } ]} onPress={() => setFilterModalVisible(true)}>
           <Ionicons name="filter" size={22} color={isDark ? '#4A90E2' : colorSet.tint} />
         </TouchableOpacity>

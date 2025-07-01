@@ -53,6 +53,7 @@ export default function RootLayout() {
             <Stack.Screen name="post" options={{ headerShown: false }} />
             <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+            <Stack.Screen name="about" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
           <Toast />

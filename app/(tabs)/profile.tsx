@@ -220,7 +220,7 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={[styles.actionsCard, { backgroundColor: colors.card }] }>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'column', gap: 8 }}>
                         <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/profile/edit')}>
                             <FontAwesome5 name="user-edit" size={20} color={blue} style={styles.actionIcon} />
                             <ThemedText style={[styles.actionText, { color: blue }]}>Edit Profile</ThemedText>

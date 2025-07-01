@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearError, clearUserData, signup } from '../services/authSlice';
 import type { AppDispatch, RootState } from '../services/store';
@@ -107,9 +107,7 @@ export default function SignupScreen() {
         ]}
       >
         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>C</Text>
-          </View>
+          <Image source={require('../src/1.png')} style={styles.logo} />
         </View>
         <Text style={styles.welcomeText}>Create Account</Text>
         <Text style={styles.subtitleText}>Join our community</Text>
@@ -266,25 +264,13 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.light.tint,
-    justifyContent: 'center',
+    marginBottom: 20,
     alignItems: 'center',
   },
-  logoCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: Colors.light.tint,
+  logo: {
+    width: 120,
+    height: 120,
+    resizeMode: 'contain',
   },
   welcomeText: {
     fontSize: 28,
