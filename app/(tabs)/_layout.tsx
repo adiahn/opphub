@@ -1,9 +1,10 @@
+import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const TAB_CONFIG = [
   { name: 'home', label: 'Home', icon: 'home-outline' },
@@ -15,9 +16,10 @@ const TAB_CONFIG = [
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
+  const colorSet = Colors[theme];
   return (
     <View style={styles.tabBarContainer}>
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: colorSet.card, shadowColor: colorSet.icon }] }>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const label =
@@ -28,6 +30,8 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               : route.name;
           const isFocused = state.index === index;
           const tabConfig = TAB_CONFIG.find(tab => tab.name === route.name);
+          const tabLabel = typeof tabConfig?.label === 'string' ? tabConfig.label : (typeof label === 'string' ? label : '');
+          const iconName = tabConfig?.icon || 'ellipse-outline';
           return (
             <TouchableOpacity
               key={route.key}
@@ -48,12 +52,16 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               activeOpacity={0.8}
             >
               <Ionicons
-                name={tabConfig?.icon as any || 'ellipse-outline'}
+                name={iconName as any}
                 size={24}
-                color={isFocused ? Colors.light.tint : '#b0b8c1'}
+                color={isFocused ? (isDark ? '#4A90E2' : colorSet.tint) : colorSet.textSecondary}
                 style={isFocused ? styles.tabIconActive : styles.tabIcon}
               />
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>{typeof (tabConfig?.label) === 'string' ? tabConfig.label : ''}</Text>
+              <ThemedText style={[
+                styles.tabLabel,
+                { color: isFocused ? (isDark ? '#4A90E2' : colorSet.tint) : colorSet.textSecondary },
+                isFocused && styles.tabLabelActive,
+              ]}>{tabLabel}</ThemedText>
             </TouchableOpacity>
           );
         })}
@@ -89,11 +97,9 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     borderRadius: 28,
     paddingVertical: 10,
     paddingHorizontal: 8,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
@@ -116,12 +122,10 @@ const styles = StyleSheet.create({
   },
   tabLabel: {
     fontSize: 12,
-    color: '#b0b8c1',
     fontWeight: '500',
     marginTop: 2,
   },
   tabLabelActive: {
-    color: Colors.light.tint,
     fontWeight: '700',
   },
 });

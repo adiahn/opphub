@@ -1,9 +1,10 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
-import ProfileProgressBar from '@/components/ui/ProfileProgressBar';
+import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/hooks/useTheme';
 import { UserProfile } from '@/types';
 import { FontAwesome5 } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -23,8 +24,16 @@ interface ProfileState {
 
 const { width } = Dimensions.get('window');
 
+// Helper function to extract username from URL
+function extractUsername(url) {
+  if (!url) return '';
+  const parts = url.split('/').filter(Boolean);
+  return parts[parts.length - 1] || url;
+}
+
 export default function ProfileScreen() {
-    const { colors } = useTheme();
+    const { colors, theme } = useTheme();
+    const isDark = theme === 'dark';
     const dispatch = useDispatch<AppDispatch>();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -121,15 +130,34 @@ export default function ProfileScreen() {
         (userProfile?.profile?.skills && userProfile.profile.skills.length > 0) ? '1' : ''
     ];
     const filledFields = completionFields.filter(Boolean).length;
-    const completionPercent = (filledFields / completionFields.length) * 100;
+    const completionPercent = Number.isFinite(filledFields) && Number.isFinite(completionFields.length) && completionFields.length > 0
+      ? (filledFields / completionFields.length) * 100
+      : 0;
 
-    if (profileLoading && !userProfile) {
+    // Find the card that shows the user's name and streak count
+    const levelColors = {
+      'Newcomer': { start: '#d3d3d3', end: '#a9a9a9' },
+      'Explorer': { start: '#5dade2', end: '#2e86c1' },
+      'Contributor': { start: '#58d68d', end: '#229954' },
+      'Collaborator': { start: '#f7dc6f', end: '#f1c40f' },
+      'Achiever': { start: '#f5b041', end: '#d35400' },
+      'Expert': { start: '#bb8fce', end: '#8e44ad' },
+      'Legend': { start: '#ec7063', end: '#c0392b' },
+    };
+    const levelColor = levelColors[userProfile?.level] || levelColors['Newcomer'];
+
+    // Guard: if userProfile or userProfile.profile is missing, show loading spinner
+    if (profileLoading || !userProfile || !userProfile.profile) {
         return (
-            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }]}>
-                <ActivityIndicator size="large" color={colors.primary} />
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }] }>
+                <ActivityIndicator size="large" color={isDark ? '#4A90E2' : colors.primary} />
             </View>
         );
     }
+
+    // Use lighter blue for all blue accents in dark mode
+    const blue = isDark ? '#4A90E2' : colors.tint;
+    const bluePrimary = isDark ? '#4A90E2' : colors.primary;
 
     return (
         <View style={{flex: 1, backgroundColor: colors.background}}>
@@ -143,65 +171,67 @@ export default function ProfileScreen() {
                     />
                 }
             >
-                <View style={[styles.profileCard, { backgroundColor: colors.card }]}>
+                <LinearGradient colors={[levelColor.start, levelColor.end]} style={styles.profileCard}>
                     <View style={styles.cardHeader}>
-                        <View style={[styles.avatar, { backgroundColor: colors.background }]}>
+                        <View style={styles.avatarNoBg}>
                             {userProfile?.name ? (
                                 <Image
                                     source={{ uri: `https://robohash.org/${userProfile.name}.png?set=set4` }}
-                                    style={styles.avatarImage}
+                                    style={styles.avatarImageFull}
                                 />
                             ) : null}
                         </View>
                         <View style={styles.userInfo}>
-                            <ThemedText style={styles.name}>{userProfile?.name}</ThemedText>
-                            <ThemedText style={[styles.levelText, { color: colors.textSecondary }]}>{userProfile?.level}</ThemedText>
+                            <ThemedText style={[styles.name, { color: '#fff' }]}>{userProfile?.name}</ThemedText>
+                            <ThemedText style={[styles.levelText, { color: '#fff' }]}>{userProfile?.level}</ThemedText>
+                            <ThemedText style={[styles.xpText, { color: '#fff' }]}>XP: {userProfile?.xp ?? 0}</ThemedText>
                         </View>
                     </View>
                     <View style={styles.statsRow}>
                         <View style={styles.statItem}>
-                            <ThemedText style={[styles.statValue, { color: colors.primary }]}>{userProfile?.streak?.current ?? 0}</ThemedText>
-                            <ThemedText style={[styles.statTitle, { color: colors.textSecondary }]}>Current Streak</ThemedText>
+                            <ThemedText style={[styles.statValue, { color: '#fff' }]}>{userProfile?.streak?.current ?? 0}</ThemedText>
+                            <ThemedText style={[styles.statTitle, { color: '#fff' }]}>Current Streak</ThemedText>
                         </View>
-                        <View style={styles.statSeparator} />
+                        <View style={[styles.statSeparator, { backgroundColor: isDark ? '#23272F' : '#E0E0E0' }]} />
                         <View style={styles.statItem}>
-                            <ThemedText style={[styles.statValue, { color: colors.primary }]}>{userProfile?.streak?.longest ?? 0}</ThemedText>
-                            <ThemedText style={[styles.statTitle, { color: colors.textSecondary }]}>Longest Streak</ThemedText>
+                            <ThemedText style={[styles.statValue, { color: '#fff' }]}>{userProfile?.streak?.longest ?? 0}</ThemedText>
+                            <ThemedText style={[styles.statTitle, { color: '#fff' }]}>Longest Streak</ThemedText>
                         </View>
                     </View>
-                </View>
+                </LinearGradient>
 
-                <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
+                <View style={[styles.detailsCard, { backgroundColor: colors.card }] }>
                     <View style={styles.detailRow}>
                         <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>State</ThemedText>
-                        <ThemedText style={styles.detailValue}>{userProfile?.profile?.location || 'Not specified'}</ThemedText>
+                        <ThemedText style={[styles.detailValue, { color: colors.text }]}>{userProfile?.profile?.location || 'Not specified'}</ThemedText>
                     </View>
-                    {/* Profile Completion Progress Bar */}
-                    <ProfileProgressBar percentage={completionPercent} />
-
-                    {userProfile?.profile?.skills && userProfile.profile.skills.length > 0 && (
-                        <>
-                            <View style={[styles.separator, { backgroundColor: colors.background }]} />
-                            <View style={styles.detailRow}>
-                                <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>Skills</ThemedText>
-                                <View style={styles.skillsContainer}>
-                                    {userProfile.profile.skills.map((skill: { name: string }, index: number) => (
-                                        <View style={[styles.skillBadge, { backgroundColor: colors.background }]}>
-                                            <ThemedText style={styles.skillText}>{skill.name}</ThemedText>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-                        </>
-                    )}
+                    <View style={styles.detailRow}>
+                        <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>Website</ThemedText>
+                        <ThemedText style={[styles.detailValue, { color: colors.text }]}>{userProfile?.profile?.website ? extractUsername(userProfile.profile.website) : 'Not specified'}</ThemedText>
+                    </View>
+                    <View style={styles.detailRow}>
+                        <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>GitHub</ThemedText>
+                        <ThemedText style={[styles.detailValue, { color: colors.text }]}>{userProfile?.profile?.github ? extractUsername(userProfile.profile.github) : 'Not specified'}</ThemedText>
+                    </View>
+                    <View style={styles.detailRow}>
+                        <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>LinkedIn</ThemedText>
+                        <ThemedText style={[styles.detailValue, { color: colors.text }]}>{userProfile?.profile?.linkedin ? extractUsername(userProfile.profile.linkedin) : 'Not specified'}</ThemedText>
+                    </View>
                 </View>
 
-                <View style={[styles.actionsCard, { backgroundColor: colors.card }]}>
-                    <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/profile/edit')}>
-                        <FontAwesome5 name="user-edit" size={20} color={colors.tint} style={styles.actionIcon} />
-                        <ThemedText style={[styles.actionText, { color: colors.tint }]}>Edit Profile</ThemedText>
-                        <FontAwesome5 name="chevron-right" size={16} color={colors.tint} />
-                    </TouchableOpacity>
+                <View style={[styles.actionsCard, { backgroundColor: colors.card }] }>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/profile/edit')}>
+                            <FontAwesome5 name="user-edit" size={20} color={blue} style={styles.actionIcon} />
+                            <ThemedText style={[styles.actionText, { color: blue }]}>Edit Profile</ThemedText>
+                            <FontAwesome5 name="chevron-right" size={16} color={blue} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/about')}>
+                            <FontAwesome5 name="info-circle" size={20} color={blue} style={styles.actionIcon} />
+                            <ThemedText style={[styles.actionText, { color: blue }]}>About Us</ThemedText>
+                            <FontAwesome5 name="chevron-right" size={16} color={blue} />
+                        </TouchableOpacity>
+                    </View>
                     <View style={[styles.actionSeparator, {backgroundColor: colors.background}]} />
                     <TouchableOpacity style={styles.actionRow} onPress={handleLogout} disabled={logoutLoading}>
                          {logoutLoading ? <ActivityIndicator color="#FF3B30" /> : (
@@ -226,7 +256,11 @@ export default function ProfileScreen() {
             />
 
             <TouchableOpacity
-                style={[styles.fab, {backgroundColor: colors.tint}, (todayCheckedIn || checkInLoading) && styles.fabDisabled]}
+                style={[
+                  styles.fab,
+                  { backgroundColor: blue, shadowColor: colors.icon, shadowOpacity: isDark ? 0 : 0.2, shadowRadius: isDark ? 0 : 6, elevation: isDark ? 0 : 8 },
+                  (todayCheckedIn || checkInLoading) && styles.fabDisabled
+                ]}
                 onPress={handleCheckIn}
                 disabled={todayCheckedIn || checkInLoading}
             >
@@ -268,18 +302,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 20,
     },
-    avatar: {
+    avatarNoBg: {
+        marginRight: 20,
+    },
+    avatarImageFull: {
         width: 80,
         height: 80,
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 20,
-        overflow: 'hidden',
-    },
-    avatarImage: {
-        width: '100%',
-        height: '100%',
+        resizeMode: 'contain',
     },
     userInfo: {
         flex: 1,
@@ -290,6 +319,10 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     levelText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    xpText: {
         fontSize: 14,
         fontWeight: '500',
     },
@@ -401,10 +434,10 @@ const styles = StyleSheet.create({
         elevation: 8,
     },
     fabDisabled: {
-        backgroundColor: '#A0A0A0',
+        backgroundColor: Colors.light.textSecondary,
     },
     fabText: {
-        color: '#FFFFFF',
+        color: Colors.light.card,
         fontSize: 16,
         fontWeight: 'bold',
         marginLeft: 8,

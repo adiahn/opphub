@@ -1,5 +1,4 @@
 import { ThemedText } from '@/components/ThemedText';
-import ProfileProgressBar from '@/components/ui/ProfileProgressBar';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { SkillLevel } from '@/types/user';
@@ -62,7 +61,9 @@ const ProfileSection = ({ title, children, isComplete }: { title: string; childr
         </View>
       )}
     </View>
-    <View style={styles.sectionContent}>{children}</View>
+    <View style={styles.sectionContent}>
+      {typeof children === 'string' ? <ThemedText>{children}</ThemedText> : children}
+    </View>
   </View>
 );
 
@@ -94,6 +95,7 @@ const showToast = (message: string) => {
 export default function EditProfileScreen() {
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
+  const colorSet = Colors[theme];
   const insets = useSafeAreaInsets();
   const dispatch = useDispatch<AppDispatch>();
   
@@ -142,7 +144,9 @@ export default function EditProfileScreen() {
     (profile && profile.profile && profile.profile.skills && profile.profile.skills.length > 0) ? '1' : ''
   ];
   const filledFields = completionFields.filter(Boolean).length;
-  const completionPercent = (filledFields / completionFields.length) * 100;
+  const completionPercent = Number.isFinite(filledFields) && Number.isFinite(completionFields.length) && completionFields.length > 0
+    ? (filledFields / completionFields.length) * 100
+    : 0;
 
   const handleSave = async () => {
     setError(null);
@@ -221,102 +225,152 @@ export default function EditProfileScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colorSet.background }]}
     >
       <ScrollView 
-        style={styles.content} 
+        style={styles.content}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 20, paddingBottom: 32 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingTop: 40,
+          paddingBottom: 40,
+          paddingHorizontal: 0,
+        }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Profile Completion Progress Bar */}
-        <ProfileProgressBar percentage={completionPercent} />
-
-        <ProfileSection title="Profile Information" isComplete={completionPercent === 100}>
-          <View style={styles.formGroup}>
-            <ThemedText style={styles.label}>Name</ThemedText>
-            <ThemedText style={styles.value}>{profile?.name || ''}</ThemedText>
+        {/* Back Button */}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#222'} />
+        </TouchableOpacity>
+        <View style={[styles.section, { backgroundColor: colorSet.card }] }>
+          <View style={styles.sectionHeader}>
+            <ThemedText style={[styles.sectionTitle, { color: colorSet.text }]}>{'Profile Information'}</ThemedText>
+            {completionPercent === 100 ? (
+              <View style={styles.completeBadge}>
+                <Ionicons name="checkmark-circle" size={20} color="#27ae60" />
+                <ThemedText style={styles.completeBadgeText}>Complete</ThemedText>
+              </View>
+            ) : (
+              <View style={styles.incompleteBadge}>
+                <Ionicons name="time" size={20} color="#f39c12" />
+                <ThemedText style={styles.incompleteBadgeText}>In Progress</ThemedText>
+              </View>
+            )}
           </View>
-
-          <View style={styles.formGroup}>
-            <ThemedText style={styles.label}>Skill</ThemedText>
-            <TextInput
-              style={[styles.input, isDark && styles.inputDark]}
-              value={skill}
-              onChangeText={setSkill}
-              placeholder="e.g., Graphic Designer, Web Developer, UI/UX Designer"
-              placeholderTextColor={isDark ? '#666' : '#999'}
-              accessibilityLabel="Skill or profession"
-            />
+          <View style={styles.sectionContent}>
+            <View style={styles.formGroup}>
+              <ThemedText style={[styles.label, { color: colorSet.text }]}>Name</ThemedText>
+              <View style={[styles.nameField, { backgroundColor: isDark ? '#23272F' : '#f2f2f2' }]}><ThemedText style={[styles.value, { color: colorSet.text }]}>{profile?.name || ''}</ThemedText></View>
+            </View>
+            <View style={styles.formGroup}>
+              <ThemedText style={[styles.label, { color: colorSet.text }]}>Skill</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colorSet.text,
+                    backgroundColor: colorSet.card,
+                    borderColor: isDark ? '#333' : '#e0e0e0',
+                  },
+                ]}
+                value={skill}
+                onChangeText={setSkill}
+                placeholder="e.g., Graphic Designer, Web Developer, UI/UX Designer"
+                placeholderTextColor={colorSet.textSecondary}
+                accessibilityLabel="Skill or profession"
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <ThemedText style={[styles.label, { color: colorSet.text }]}>Location</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colorSet.text,
+                    backgroundColor: colorSet.card,
+                    borderColor: isDark ? '#333' : '#e0e0e0',
+                  },
+                ]}
+                value={location}
+                onChangeText={setLocation}
+                placeholder="City, Country"
+                placeholderTextColor={colorSet.textSecondary}
+                accessibilityLabel="Location"
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <ThemedText style={[styles.label, { color: colorSet.text }]}>Website</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colorSet.text,
+                    backgroundColor: colorSet.card,
+                    borderColor: isDark ? '#333' : '#e0e0e0',
+                  },
+                ]}
+                value={website}
+                onChangeText={setWebsite}
+                placeholder="https://your-website.com"
+                placeholderTextColor={colorSet.textSecondary}
+                autoCapitalize="none"
+                keyboardType="url"
+                accessibilityLabel="Website URL"
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <ThemedText style={[styles.label, { color: colorSet.text }]}>GitHub</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colorSet.text,
+                    backgroundColor: colorSet.card,
+                    borderColor: isDark ? '#333' : '#e0e0e0',
+                  },
+                ]}
+                value={github}
+                onChangeText={setGithub}
+                placeholder="github.com/username"
+                placeholderTextColor={colorSet.textSecondary}
+                autoCapitalize="none"
+                accessibilityLabel="GitHub URL"
+              />
+            </View>
+            <View style={styles.formGroup}>
+              <ThemedText style={[styles.label, { color: colorSet.text }]}>LinkedIn</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    color: colorSet.text,
+                    backgroundColor: colorSet.card,
+                    borderColor: isDark ? '#333' : '#e0e0e0',
+                  },
+                ]}
+                value={linkedin}
+                onChangeText={setLinkedin}
+                placeholder="linkedin.com/in/username"
+                placeholderTextColor={colorSet.textSecondary}
+                autoCapitalize="none"
+                accessibilityLabel="LinkedIn URL"
+              />
+            </View>
           </View>
-
-          <View style={styles.formGroup}>
-            <ThemedText style={styles.label}>Location</ThemedText>
-            <TextInput
-              style={[styles.input, isDark && styles.inputDark]}
-              value={location}
-              onChangeText={setLocation}
-              placeholder="City, Country"
-              placeholderTextColor={isDark ? '#666' : '#999'}
-              accessibilityLabel="Location"
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <ThemedText style={styles.label}>Website</ThemedText>
-            <TextInput
-              style={[styles.input, isDark && styles.inputDark]}
-              value={website}
-              onChangeText={setWebsite}
-              placeholder="https://your-website.com"
-              placeholderTextColor={isDark ? '#666' : '#999'}
-              autoCapitalize="none"
-              keyboardType="url"
-              accessibilityLabel="Website URL"
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <ThemedText style={styles.label}>GitHub</ThemedText>
-            <TextInput
-              style={[styles.input, isDark && styles.inputDark]}
-              value={github}
-              onChangeText={setGithub}
-              placeholder="github.com/username"
-              placeholderTextColor={isDark ? '#666' : '#999'}
-              autoCapitalize="none"
-              accessibilityLabel="GitHub URL"
-            />
-          </View>
-
-          <View style={styles.formGroup}>
-            <ThemedText style={styles.label}>LinkedIn</ThemedText>
-            <TextInput
-              style={[styles.input, isDark && styles.inputDark]}
-              value={linkedin}
-              onChangeText={setLinkedin}
-              placeholder="linkedin.com/in/username"
-              placeholderTextColor={isDark ? '#666' : '#999'}
-              autoCapitalize="none"
-              accessibilityLabel="LinkedIn URL"
-            />
-          </View>
-        </ProfileSection>
-
+        </View>
         {error && (
           <View style={styles.errorContainer}>
             <ThemedText style={styles.errorText}>{error}</ThemedText>
           </View>
         )}
-
         {success && (
           <View style={styles.successContainer}>
             <ThemedText style={styles.successText}>{success}</ThemedText>
           </View>
         )}
-
         <TouchableOpacity
-          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+          style={[styles.saveButton, isSaving && styles.saveButtonDisabled, { backgroundColor: colorSet.tint }]}
           onPress={handleSave}
           disabled={isSaving}
           accessibilityLabel="Save changes to your profile"
@@ -342,7 +396,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   section: {
     marginBottom: 24,
@@ -455,5 +508,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  nameField: {
+    backgroundColor: '#f2f2f2',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  backButton: {
+    marginBottom: 16,
+    alignSelf: 'flex-start',
   },
 }); 

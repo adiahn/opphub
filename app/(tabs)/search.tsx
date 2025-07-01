@@ -32,6 +32,7 @@ export default function SearchScreen() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
+  const colorSet = Colors[theme];
   const router = useRouter();
   const searchInputRef = useRef<TextInput>(null);
   const searchBarScale = useRef(new Animated.Value(1)).current;
@@ -120,24 +121,24 @@ export default function SearchScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colorSet.background }] }>
       {/* Hero Search Bar */}
-      <View style={styles.heroContainer}>
+      <View style={[styles.heroContainer, { backgroundColor: colorSet.background }] }>
         <Animated.View style={[styles.heroSearchBarWrapper, { transform: [{ scale: searchBarScale }] }]}> 
           <LinearGradient
-            colors={['#fff', '#f6f8fa']}
+            colors={isDark ? ['#23272F', '#18181b'] : ['#fff', '#f6f8fa']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.heroSearchBarGradient}
           >
-            <View style={styles.heroSearchBarShadow}>
-              <View style={styles.heroSearchBar}>
-                <Ionicons name="search" size={22} color={isDark ? '#999' : '#888'} style={styles.searchIcon} />
+            <View style={[styles.heroSearchBarShadow, { backgroundColor: colorSet.card }] }>
+              <View style={[styles.heroSearchBar, { backgroundColor: colorSet.card }] }>
+                <Ionicons name="search" size={22} color={isDark ? colorSet.textSecondary : '#888'} style={styles.searchIcon} />
                 <TextInput
                   ref={searchInputRef}
-                  style={styles.searchInput}
+                  style={[styles.searchInput, { color: colorSet.text }]}
                   placeholder="Search posts, topics, people..."
-                  placeholderTextColor={'#b0b4bb'}
+                  placeholderTextColor={isDark ? colorSet.textSecondary : '#b0b4bb'}
                   value={searchQuery}
                   onChangeText={(text) => {
                     setSearchQuery(text);
@@ -160,7 +161,7 @@ export default function SearchScreen() {
                 />
                 {searchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Ionicons name="close-circle" size={20} color={'#b0b4bb'} />
+                    <Ionicons name="close-circle" size={20} color={isDark ? colorSet.textSecondary : '#b0b4bb'} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -179,14 +180,14 @@ export default function SearchScreen() {
         <TouchableOpacity
           style={[
             styles.categoryPill,
-            selectedCategory === 'all' && styles.categoryPillSelected,
+            selectedCategory === 'all' && [styles.categoryPillSelected, { backgroundColor: colorSet.tint }],
           ]}
           onPress={() => setSelectedCategory('all')}
         >
           <ThemedText
             style={[
               styles.categoryText,
-              selectedCategory === 'all' && styles.categoryTextSelected,
+              selectedCategory === 'all' && [styles.categoryTextSelected, { color: colorSet.card }],
             ]}
           >
             All
@@ -197,14 +198,14 @@ export default function SearchScreen() {
             key={category.id}
             style={[
               styles.categoryPill,
-              selectedCategory === category.id && styles.categoryPillSelected,
+              selectedCategory === category.id && [styles.categoryPillSelected, { backgroundColor: colorSet.tint }],
             ]}
             onPress={() => setSelectedCategory(category.id)}
           >
             <ThemedText
               style={[
                 styles.categoryText,
-                selectedCategory === category.id && styles.categoryTextSelected,
+                selectedCategory === category.id && [styles.categoryTextSelected, { color: colorSet.card }],
               ]}
             >
               {category.name}
@@ -214,7 +215,7 @@ export default function SearchScreen() {
       </ScrollView>
 
       <ScrollView
-        style={styles.content}
+        style={[styles.content, { backgroundColor: colorSet.background }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -225,14 +226,14 @@ export default function SearchScreen() {
               <ThemedText style={styles.sectionTitle}>Recent Searches</ThemedText>
               {recentSearches.length > 0 && (
                 <TouchableOpacity onPress={handleClearRecent}>
-                  <Ionicons name="trash-outline" size={18} color={'#b0b4bb'} />
+                  <Ionicons name="trash-outline" size={18} color={colorSet.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
             <View style={styles.cardContent}>
               {recentSearches.length === 0 ? (
                 <View style={styles.emptyStateContainer}>
-                  <Ionicons name="search-outline" size={64} color="#b0b4bb" style={styles.emptyStateIcon} />
+                  <Ionicons name="search-outline" size={64} color={colorSet.textSecondary} style={styles.emptyStateIcon} />
                   <ThemedText style={styles.emptyStateText}>No recent searches</ThemedText>
                 </View>
               ) : (
@@ -242,7 +243,7 @@ export default function SearchScreen() {
                     style={styles.recentSearchItem}
                     onPress={() => handleRecentSearchPress(query)}
                   >
-                    <Ionicons name="time-outline" size={18} color={Colors.light.tint} />
+                    <Ionicons name="time-outline" size={18} color={colorSet.tint} />
                     <ThemedText style={styles.recentSearchText}>{query}</ThemedText>
                   </TouchableOpacity>
                 ))
@@ -261,7 +262,7 @@ export default function SearchScreen() {
                   style={styles.suggestionItem}
                   onPress={() => handleSuggestionPress(suggestion)}
                 >
-                  <Ionicons name="search-outline" size={18} color={'#b0b4bb'} />
+                  <Ionicons name="search-outline" size={18} color={colorSet.textSecondary} />
                   <ThemedText style={styles.suggestionText}>{suggestion}</ThemedText>
                 </TouchableOpacity>
               ))}
@@ -269,7 +270,7 @@ export default function SearchScreen() {
           </View>
         ) : isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.light.tint} />
+            <ActivityIndicator size="large" color={colorSet.tint} />
             <ThemedText style={styles.loadingText}>Loading...</ThemedText>
           </View>
         ) : filteredResults.length === 0 ? (
@@ -279,7 +280,7 @@ export default function SearchScreen() {
             </View>
             <View style={styles.cardContent}>
               <View style={styles.emptyStateContainer}>
-                <Ionicons name="search-outline" size={64} color="#b0b4bb" style={styles.emptyStateIcon} />
+                <Ionicons name="search-outline" size={64} color={colorSet.textSecondary} style={styles.emptyStateIcon} />
                 <ThemedText style={styles.emptyStateText}>No results found</ThemedText>
               </View>
             </View>
@@ -304,7 +305,7 @@ export default function SearchScreen() {
                     />
                   ) : (
                     <View style={[styles.resultImage, styles.resultImagePlaceholder]}>
-                      <Ionicons name="image-outline" size={28} color={'#b0b4bb'} />
+                      <Ionicons name="image-outline" size={28} color={colorSet.textSecondary} />
                     </View>
                   )}
                   <View style={styles.resultContent}>
