@@ -136,7 +136,7 @@ export default function SearchScreen() {
                 <Ionicons name="search" size={22} color={isDark ? colorSet.textSecondary : '#888'} style={styles.searchIcon} />
                 <TextInput
                   ref={searchInputRef}
-                  style={[styles.searchInput, { color: colorSet.text }]}
+                  style={[styles.searchInput, { color: isDark ? '#fff' : colorSet.text }]}
                   placeholder="Search posts, topics, people..."
                   placeholderTextColor={isDark ? colorSet.textSecondary : '#b0b4bb'}
                   value={searchQuery}
@@ -180,14 +180,14 @@ export default function SearchScreen() {
         <TouchableOpacity
           style={[
             styles.categoryPill,
-            selectedCategory === 'all' && [styles.categoryPillSelected, { backgroundColor: colorSet.tint }],
+            selectedCategory === 'all' && [styles.categoryPillSelected, { backgroundColor: isDark ? '#4A90E2' : colorSet.tint }],
           ]}
           onPress={() => setSelectedCategory('all')}
         >
           <ThemedText
             style={[
               styles.categoryText,
-              selectedCategory === 'all' && [styles.categoryTextSelected, { color: colorSet.card }],
+              selectedCategory === 'all' && [styles.categoryTextSelected, { color: '#fff' }],
             ]}
           >
             All
@@ -198,14 +198,14 @@ export default function SearchScreen() {
             key={category.id}
             style={[
               styles.categoryPill,
-              selectedCategory === category.id && [styles.categoryPillSelected, { backgroundColor: colorSet.tint }],
+              selectedCategory === category.id && [styles.categoryPillSelected, { backgroundColor: isDark ? '#4A90E2' : colorSet.tint }],
             ]}
             onPress={() => setSelectedCategory(category.id)}
           >
             <ThemedText
               style={[
                 styles.categoryText,
-                selectedCategory === category.id && [styles.categoryTextSelected, { color: colorSet.card }],
+                selectedCategory === category.id && [styles.categoryTextSelected, { color: '#fff' }],
               ]}
             >
               {category.name}
@@ -221,30 +221,30 @@ export default function SearchScreen() {
       >
         {/* Recent Searches Section */}
         {searchQuery.length === 0 && !isFocused ? (
-          <View style={styles.cardSection}>
+          <View style={[styles.cardSection, { backgroundColor: isDark ? '#23272F' : '#fff' }] }>
             <View style={styles.sectionHeaderRow}>
-              <ThemedText style={styles.sectionTitle}>Recent Searches</ThemedText>
+              <ThemedText style={[styles.sectionTitle, { color: isDark ? '#fff' : '#222' }]}>Recent Searches</ThemedText>
               {recentSearches.length > 0 && (
                 <TouchableOpacity onPress={handleClearRecent}>
-                  <Ionicons name="trash-outline" size={18} color={colorSet.textSecondary} />
+                  <Ionicons name="trash-outline" size={18} color={isDark ? colorSet.textSecondary : colorSet.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
             <View style={styles.cardContent}>
               {recentSearches.length === 0 ? (
                 <View style={styles.emptyStateContainer}>
-                  <Ionicons name="search-outline" size={64} color={colorSet.textSecondary} style={styles.emptyStateIcon} />
-                  <ThemedText style={styles.emptyStateText}>No recent searches</ThemedText>
+                  <Ionicons name="search-outline" size={64} color={isDark ? colorSet.textSecondary : colorSet.textSecondary} style={styles.emptyStateIcon} />
+                  <ThemedText style={[styles.emptyStateText, { color: isDark ? colorSet.textSecondary : '#888' }]}>No recent searches</ThemedText>
                 </View>
               ) : (
                 recentSearches.map((query, idx) => (
                   <TouchableOpacity
                     key={idx}
-                    style={styles.recentSearchItem}
+                    style={[styles.recentSearchItem, { backgroundColor: isDark ? '#23272F' : '#f8fafd' }]}
                     onPress={() => handleRecentSearchPress(query)}
                   >
-                    <Ionicons name="time-outline" size={18} color={colorSet.tint} />
-                    <ThemedText style={styles.recentSearchText}>{query}</ThemedText>
+                    <Ionicons name="time-outline" size={18} color={isDark ? '#4A90E2' : colorSet.tint} />
+                    <ThemedText style={[styles.recentSearchText, { color: isDark ? '#fff' : '#222' }]}>{query}</ThemedText>
                   </TouchableOpacity>
                 ))
               )}

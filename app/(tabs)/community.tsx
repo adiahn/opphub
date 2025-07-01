@@ -40,6 +40,8 @@ const skillLevels = ['All', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
 const UserCard = ({ item }: { item: CommunityUser }) => {
   const router = useRouter();
   const theme = useColorScheme() ?? 'light';
+  const isDark = theme === 'dark';
+  const colorSet = Colors[theme];
   const levelColor = levelColors[item.level] || levelColors['Newcomer'];
   
   // Generate RoboHash URL using user ID
@@ -57,9 +59,12 @@ const UserCard = ({ item }: { item: CommunityUser }) => {
         Platform.OS === 'web' && { transform: [{ scale: pressed ? 0.98 : 1 }] },
       ]}
     >
-      <LinearGradient colors={[levelColor.start, levelColor.end]} style={styles.cardGradient}>
+      <LinearGradient
+        colors={isDark ? [levelColor.end, levelColor.start] : [levelColor.start, levelColor.end]}
+        style={[styles.cardGradient, { backgroundColor: colorSet.card }]}
+      >
         <View style={styles.cardHeader}>
-          <ThemedText style={styles.levelText}>{item.level}</ThemedText>
+          <ThemedText style={[styles.levelText, { color: '#fff', backgroundColor: 'rgba(0,0,0,0.25)' }]}>{item.level}</ThemedText>
         </View>
         <View style={styles.cardBody}>
           <View style={styles.profileImageContainer}>
@@ -69,20 +74,20 @@ const UserCard = ({ item }: { item: CommunityUser }) => {
               resizeMode="cover"
             />
           </View>
-          <ThemedText style={styles.userName} numberOfLines={1}>{item.name}</ThemedText>
-          <ThemedText style={styles.userBio} numberOfLines={2}>
+          <ThemedText style={[styles.userName, { color: '#fff' }]} numberOfLines={1}>{item.name}</ThemedText>
+          <ThemedText style={[styles.userBio, { color: 'rgba(255,255,255,0.9)' }]} numberOfLines={2}>
             {item.profile.bio || 'A talented member of our community.'}
           </ThemedText>
         </View>
         <View style={styles.cardFooter}>
           <View style={styles.skillsContainer}>
             {item.profile.skills?.slice(0, 3).map((skill) => (
-              <View key={skill._id} style={styles.skillBadge}>
-                <ThemedText style={styles.skillText}>{skill.name}</ThemedText>
+              <View key={skill._id} style={[styles.skillBadge, { backgroundColor: 'rgba(0,0,0,0.18)' }] }>
+                <ThemedText style={[styles.skillText, { color: '#fff' }]}>{skill.name}</ThemedText>
               </View>
             ))}
             {(!item.profile.skills || item.profile.skills.length === 0) && (
-              <ThemedText style={styles.skillText}>No skills listed</ThemedText>
+              <ThemedText style={[styles.skillText, { color: '#fff' }]}>No skills listed</ThemedText>
             )}
           </View>
         </View>
@@ -140,6 +145,10 @@ export default function SkillsBankScreen() {
     }
   };
 
+  const theme = useColorScheme() ?? 'light';
+  const isDark = theme === 'dark';
+  const colorSet = Colors[theme];
+
   if (isLoading) {
     return (
       <ThemedView style={styles.centered}>
@@ -157,35 +166,35 @@ export default function SkillsBankScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colorSet.background }] }>
       {/* Header with Search, Filter, and Title */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colorSet.background }] }>
         <View style={styles.headerTop}>
           <View style={styles.titleContainer}>
-            <ThemedText style={styles.title}>Skills Bank</ThemedText>
+            <ThemedText style={[styles.title, { color: colorSet.text }]}>Skills Bank</ThemedText>
           </View>
           <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-              <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+            <View style={[styles.searchBar, { backgroundColor: colorSet.card }] }>
+              <Ionicons name="search" size={20} color={colorSet.textSecondary} style={styles.searchIcon} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colorSet.text }]}
                 placeholder="Search by name or skills..."
-                placeholderTextColor="#666"
+                placeholderTextColor={colorSet.textSecondary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={20} color="#666" />
+                  <Ionicons name="close-circle" size={20} color={colorSet.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
           </View>
           <TouchableOpacity 
-            style={styles.filterButton}
+            style={[styles.filterButton, { backgroundColor: colorSet.card }]}
             onPress={() => setShowFilters(!showFilters)}
           >
-            <Ionicons name="filter" size={20} color={Colors.light.tint} />
+            <Ionicons name="filter" size={20} color={colorSet.tint} />
           </TouchableOpacity>
         </View>
       </View>
