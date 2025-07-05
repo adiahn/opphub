@@ -10,9 +10,18 @@ import 'react-native-reanimated';
 import { Toast } from 'react-native-toast-message/lib/src/Toast';
 import { Provider } from 'react-redux';
 import { AuthNavigator } from '../components/AuthNavigator';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { store } from '../services/store';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: 1000,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
 export const unstable_settings = {
   // Ensure that reloading keeps a back button present.
@@ -41,24 +50,26 @@ export default function RootLayout() {
   }
 
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <AuthNavigator />
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="signup" options={{ headerShown: false }} />
-            <Stack.Screen name="post" options={{ headerShown: false }} />
-            <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
-            <Stack.Screen name="about" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <Toast />
-        </ThemeProvider>
-      </QueryClientProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <AuthNavigator />
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+              <Stack.Screen name="login" options={{ headerShown: false }} />
+              <Stack.Screen name="signup" options={{ headerShown: false }} />
+              <Stack.Screen name="post" options={{ headerShown: false }} />
+              <Stack.Screen name="user/[id]" options={{ headerShown: false }} />
+              <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+              <Stack.Screen name="about" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <Toast />
+          </ThemeProvider>
+        </QueryClientProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }

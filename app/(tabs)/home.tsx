@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useCategories, useFreshPosts, usePosts } from '@/hooks/usePosts';
-import { Post } from '@/services/api';
+import { Post } from '@/types/posts';
 import { Ionicons } from '@expo/vector-icons';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,7 +31,17 @@ const PostCard = ({ post, onPress }: { post: Post; onPress: () => void }) => {
   const theme = useColorScheme() ?? 'light';
   const colorSet = Colors[theme];
   const isDark = theme === 'dark';
-  const readLength = Math.max(1, Math.round(post.content.rendered.replace(/<[^>]+>/g, '').split(/\s+/).length / 200));
+  
+  // Safe content processing with error handling
+  let readLength = 1;
+  try {
+    const content = post.content?.rendered || '';
+    const cleanContent = content.replace(/<[^>]+>/g, '');
+    const wordCount = cleanContent.split(/\s+/).length;
+    readLength = Math.max(1, Math.round(wordCount / 200));
+  } catch (error) {
+    console.error('Error calculating read length:', error);
+  }
 
   return (
     <TouchableOpacity
@@ -51,10 +61,12 @@ const PostCard = ({ post, onPress }: { post: Post; onPress: () => void }) => {
       <Image
         source={{ uri: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://via.placeholder.com/400x200' }}
         style={[styles.postImage, { borderColor: isDark ? '#23272F' : 'rgba(0,0,0,0.04)' }]}
+        onError={(error) => console.log('Post image error:', error)}
+        defaultSource={{ uri: 'https://via.placeholder.com/400x200' }}
       />
       <View style={[styles.postContent, { backgroundColor: colorSet.card }]}>
         <ThemedText style={[styles.postTitle, { color: colorSet.text }]} numberOfLines={2}>
-          {post.title.rendered}
+          {post.title?.rendered || 'Untitled Post'}
         </ThemedText>
         <View style={[styles.postMeta, { backgroundColor: colorSet.card }]}>
           <View style={[styles.postMetaItem, { backgroundColor: colorSet.card }]}>
@@ -64,7 +76,7 @@ const PostCard = ({ post, onPress }: { post: Post; onPress: () => void }) => {
           <View style={[styles.postMetaItem, { backgroundColor: colorSet.card }]}>
             <Ionicons name="calendar-outline" size={14} color={isDark ? '#999' : '#666'} />
             <ThemedText style={[styles.postMetaText, { color: colorSet.text }]}>
-              {new Date(post.date).toLocaleDateString()}
+              {post.date ? new Date(post.date).toLocaleDateString() : 'Unknown Date'}
             </ThemedText>
           </View>
         </View>
@@ -96,15 +108,17 @@ const FreshPostCard = ({ post, onPress }: { post: Post; onPress: () => void }) =
       <Image
         source={{ uri: post._embedded?.['wp:featuredmedia']?.[0]?.source_url || 'https://via.placeholder.com/200x200' }}
         style={[styles.freshPostImage, { borderColor: isDark ? '#23272F' : 'rgba(0,0,0,0.04)' }]}
+        onError={(error) => console.log('Fresh post image error:', error)}
+        defaultSource={{ uri: 'https://via.placeholder.com/200x200' }}
       />
       <View style={[styles.freshPostContent, { backgroundColor: colorSet.card }]}>
         <ThemedText style={[styles.freshPostTitle, { color: colorSet.text }]} numberOfLines={2}>
-          {post.title.rendered}
+          {post.title?.rendered || 'Untitled Post'}
         </ThemedText>
         <View style={[styles.freshPostMeta, { backgroundColor: colorSet.card }]}>
           <Ionicons name="time-outline" size={12} color={isDark ? '#999' : '#666'} />
           <ThemedText style={[styles.freshPostMetaText, { color: colorSet.text }]}>
-            {new Date(post.date).toLocaleDateString()}
+            {post.date ? new Date(post.date).toLocaleDateString() : 'Unknown Date'}
           </ThemedText>
         </View>
       </View>
@@ -128,6 +142,7 @@ export default function HomeScreen() {
   const isDark = theme === 'dark';
   const [search, setSearch] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   // React Query hooks
   const { 
@@ -161,42 +176,55 @@ export default function HomeScreen() {
 
   // Handle initial and paginated posts
   useEffect(() => {
-    if (postsData && page === 1) {
-      setAllPosts(postsData.data);
-      setHasMore(page < postsData.totalPages);
-    } else if (postsData && page > 1) {
-      setAllPosts(prev => {
-        const newPosts = postsData.data.filter(
-          (p) => !prev.some((existing) => existing.id === p.id)
-        );
-        return [...prev, ...newPosts];
-      });
-      setHasMore(page < postsData.totalPages);
+    try {
+      if (postsData && page === 1) {
+        setAllPosts(postsData.data || []);
+        setHasMore(page < (postsData.totalPages || 1));
+      } else if (postsData && page > 1) {
+        setAllPosts(prev => {
+          const newPosts = (postsData.data || []).filter(
+            (p) => !prev.some((existing) => existing.id === p.id)
+          );
+          return [...prev, ...newPosts];
+        });
+        setHasMore(page < (postsData.totalPages || 1));
+      }
+    } catch (error) {
+      console.error('Error handling posts data:', error);
     }
   }, [postsData, page]);
 
   const onRefresh = async () => {
-    if (!isOnline) {
-      Alert.alert(
-        "No Internet Connection",
-        "Please check your internet connection and try again."
-      );
-      return;
+    try {
+      if (!isOnline) {
+        Alert.alert(
+          "No Internet Connection",
+          "Please check your internet connection and try again."
+        );
+        return;
+      }
+      setPage(1);
+      setAllPosts([]);
+      await Promise.all([
+        refetchPosts(),
+        refetchFreshPosts(),
+        refetchCategories()
+      ]);
+    } catch (error) {
+      console.error('Error during refresh:', error);
     }
-    setPage(1);
-    setAllPosts([]);
-    await Promise.all([
-      refetchPosts(),
-      refetchFreshPosts(),
-      refetchCategories()
-    ]);
   };
 
   const loadMore = async () => {
-    if (!hasMore || isLoadingMore) return;
-    setIsLoadingMore(true);
-    setPendingPage(page + 1);
-    setPage(prev => prev + 1);
+    try {
+      if (!hasMore || isLoadingMore) return;
+      setIsLoadingMore(true);
+      setPendingPage(page + 1);
+      setPage(prev => prev + 1);
+    } catch (error) {
+      console.error('Error loading more posts:', error);
+      setIsLoadingMore(false);
+    }
   };
 
   useEffect(() => {
@@ -213,14 +241,27 @@ export default function HomeScreen() {
   const categoryFilteredPosts = selectedCategory === 'all'
     ? filteredPosts
     : filteredPosts.filter((post: Post) => {
-        const postCategories = post._embedded?.['wp:term']?.[0]?.map((cat: any) => cat.id) || [];
-        return postCategories.includes(selectedCategory);
+        try {
+          const postCategories = post._embedded?.['wp:term']?.[0]?.map((cat: any) => cat.id) || [];
+          return postCategories.includes(selectedCategory);
+        } catch (error) {
+          console.error('Error filtering by category:', error);
+          return false;
+        }
       });
 
   const searchedPosts = categoryFilteredPosts.filter(
-    (post: Post) =>
-      post.title.rendered.toLowerCase().includes(search.trim().toLowerCase()) ||
-      post.content.rendered.toLowerCase().includes(search.trim().toLowerCase())
+    (post: Post) => {
+      try {
+        const searchTerm = search.trim().toLowerCase();
+        const title = post.title?.rendered?.toLowerCase() || '';
+        const content = post.content?.rendered?.toLowerCase() || '';
+        return title.includes(searchTerm) || content.includes(searchTerm);
+      } catch (error) {
+        console.error('Error in search filter:', error);
+        return false;
+      }
+    }
   );
 
   const isLoading = isLoadingPosts || isLoadingFreshPosts || isLoadingCategories;
@@ -309,7 +350,18 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colorSet.background }] }>
       <View style={styles.headerRow}>
-        <Text style={[styles.corporateTitle, { color: isDark ? '#4A90E2' : colorSet.tint }]}>Opportunities Hub</Text>
+        {logoError ? (
+          <ThemedText style={[styles.logoText, { color: colorSet.text }]}>
+            Opportunities Hub
+          </ThemedText>
+        ) : (
+          <Image 
+            source={require('../../src/3.png')} 
+            style={styles.logoHeader}
+            onError={() => setLogoError(true)}
+            defaultSource={require('../../src/3.png')}
+          />
+        )}
         <TouchableOpacity style={[styles.filterBtn, { backgroundColor: isDark ? '#23272F' : '#f8fafd', shadowColor: colorSet.icon } ]} onPress={() => setFilterModalVisible(true)}>
           <Ionicons name="filter" size={22} color={isDark ? '#4A90E2' : colorSet.tint} />
         </TouchableOpacity>
@@ -587,8 +639,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     justifyContent: 'space-between',
   },
-  logoIcon: {
-    marginRight: 12,
+  logoHeader: {
+    width: 120,
+    height: 40,
+    resizeMode: 'contain',
+    marginLeft: -30,
   },
   filterBtn: {
     marginLeft: 10,
@@ -706,5 +761,10 @@ const styles = StyleSheet.create({
   },
   categoryTextSelected: {
     color: '#fff',
+  },
+  logoText: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginLeft: -30,
   },
 });

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Opportunities Hub",
-    "slug": "opportunities-hub",
+    "slug": "Q",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -44,6 +44,7 @@
       "eas": {
         "projectId": "08f447fc-c7ed-42d4-b4f4-3921a8e785cb"
       }
-    }
+    },
+    "owner": "adiahn"
   }
 }

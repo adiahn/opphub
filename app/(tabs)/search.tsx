@@ -40,6 +40,14 @@ export default function SearchScreen() {
   // Fetch posts and categories
   const { data: postsData, isLoading } = usePosts(1);
   const { data: categories } = useCategories();
+  console.log('categories:', categories);
+  // Robustly extract array for mapping
+  let categoryList: any[] = [];
+  if (Array.isArray(categories)) {
+    categoryList = categories;
+  } else if (categories && Array.isArray((categories as any).data)) {
+    categoryList = (categories as any).data;
+  }
   const allPosts = postsData?.data || [];
 
   // Animate search bar on focus
@@ -193,7 +201,7 @@ export default function SearchScreen() {
             All
           </ThemedText>
         </TouchableOpacity>
-        {categories?.map((category) => (
+        {categoryList.map((category: any) => (
           <TouchableOpacity
             key={category.id}
             style={[

@@ -3,7 +3,7 @@ import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/hooks/useTheme';
 import { UserProfile } from '@/types';
-import { FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
@@ -25,7 +25,7 @@ interface ProfileState {
 const { width } = Dimensions.get('window');
 
 // Helper function to extract username from URL
-function extractUsername(url) {
+function extractUsername(url: string): string {
   if (!url) return '';
   const parts = url.split('/').filter(Boolean);
   return parts[parts.length - 1] || url;
@@ -135,7 +135,7 @@ export default function ProfileScreen() {
       : 0;
 
     // Find the card that shows the user's name and streak count
-    const levelColors = {
+    const levelColors: Record<string, { start: string; end: string }> = {
       'Newcomer': { start: '#d3d3d3', end: '#a9a9a9' },
       'Explorer': { start: '#5dade2', end: '#2e86c1' },
       'Contributor': { start: '#58d68d', end: '#229954' },
@@ -144,7 +144,7 @@ export default function ProfileScreen() {
       'Expert': { start: '#bb8fce', end: '#8e44ad' },
       'Legend': { start: '#ec7063', end: '#c0392b' },
     };
-    const levelColor = levelColors[userProfile?.level] || levelColors['Newcomer'];
+    const levelColor = levelColors[userProfile?.level || 'Newcomer'] || levelColors['Newcomer'];
 
     // Guard: if userProfile or userProfile.profile is missing, show loading spinner
     if (profileLoading || !userProfile || !userProfile.profile) {
@@ -161,6 +161,18 @@ export default function ProfileScreen() {
 
     return (
         <View style={{flex: 1, backgroundColor: colors.background}}>
+            {/* Floating Back Button */}
+            <TouchableOpacity 
+                style={[styles.floatingBackButton, { backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)' }]}
+                onPress={() => router.back()}
+            >
+                <Ionicons 
+                    name="arrow-back" 
+                    size={24} 
+                    color={isDark ? '#fff' : '#333'} 
+                />
+            </TouchableOpacity>
+
             <ScrollView 
                 contentContainerStyle={styles.contentContainer}
                 refreshControl={
@@ -441,5 +453,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         marginLeft: 8,
-    }
+    },
+    floatingBackButton: {
+        position: 'absolute',
+        top: 60,
+        left: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
+        zIndex: 1000,
+    },
 }); 

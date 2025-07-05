@@ -233,15 +233,29 @@ export default function EditProfileScreen() {
         contentContainerStyle={{
           flexGrow: 1,
           justifyContent: 'center',
-          paddingTop: 40,
+          paddingTop: 70,
           paddingBottom: 40,
-          paddingHorizontal: 0,
+          paddingHorizontal: 20,
         }}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Back Button */}
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={isDark ? '#fff' : '#222'} />
+        {/* Floating Back Button */}
+        <TouchableOpacity 
+          style={[
+            styles.floatingBackButton,
+            {
+              backgroundColor: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)',
+              marginTop: 0,
+              marginBottom: 0,
+            },
+          ]}
+          onPress={() => router.back()}
+        >
+          <Ionicons 
+            name="arrow-back" 
+            size={24} 
+            color={isDark ? '#fff' : '#333'} 
+          />
         </TouchableOpacity>
         <View style={[styles.section, { backgroundColor: colorSet.card }] }>
           <View style={styles.sectionHeader}>
@@ -450,7 +464,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,
@@ -516,8 +530,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
   },
-  backButton: {
-    marginBottom: 16,
-    alignSelf: 'flex-start',
+  floatingBackButton: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 1000,
   },
 }); 

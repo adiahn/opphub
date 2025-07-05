@@ -1,30 +1,34 @@
-import apiClient from '@/services/apiClient';
+import { wordpressClient } from '@/services/apiClient';
 import { Category, Post, PostsResponse } from '@/types/posts';
 import { useQuery } from '@tanstack/react-query';
 
 export const POSTS_QUERY_KEY = 'posts';
 export const CATEGORIES_QUERY_KEY = 'categories';
 
-// Base URL for the WordPress API
-const BASE_URL = 'https://opportunitieshub.ng/wp-json/wp/v2';
-
 export const usePosts = (page: number = 1, perPage: number = 10) => {
   return useQuery<PostsResponse, Error>({
     queryKey: [POSTS_QUERY_KEY, page, perPage],
     queryFn: async () => {
-      const response = await apiClient.get<Post[]>(`${BASE_URL}/posts`, {
-        params: {
-          _embed: true,
-          per_page: perPage,
-          page,
-        },
-      });
-      return {
-        data: response.data,
-        totalPages: parseInt(response.headers['x-wp-totalpages'] || '1'),
-      };
+      try {
+        const response = await wordpressClient.get<Post[]>(`/posts`, {
+          params: {
+            _embed: true,
+            per_page: perPage,
+            page,
+          },
+        });
+        return {
+          data: response.data,
+          totalPages: parseInt(response.headers['x-wp-totalpages'] || '1'),
+        };
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        throw error;
+      }
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2,
+    retryDelay: 1000,
   });
 };
 
@@ -32,13 +36,20 @@ export const usePost = (id: number) => {
   return useQuery<Post, Error>({
     queryKey: [POSTS_QUERY_KEY, id],
     queryFn: async () => {
-      const response = await apiClient.get<Post>(`${BASE_URL}/posts/${id}`, {
-        params: { _embed: true },
-      });
-      return response.data;
+      try {
+        const response = await wordpressClient.get<Post>(`/posts/${id}`, {
+          params: { _embed: true },
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching post:', error);
+        throw error;
+      }
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2,
+    retryDelay: 1000,
   });
 };
 
@@ -46,15 +57,22 @@ export const useFreshPosts = (perPage: number = 5) => {
   return useQuery<Post[], Error>({
     queryKey: [POSTS_QUERY_KEY, 'fresh'],
     queryFn: async () => {
-      const response = await apiClient.get<Post[]>(`${BASE_URL}/posts`, {
-        params: {
-          _embed: true,
-          per_page: perPage,
-        },
-      });
-      return response.data;
+      try {
+        const response = await wordpressClient.get<Post[]>(`/posts`, {
+          params: {
+            _embed: true,
+            per_page: perPage,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching fresh posts:', error);
+        throw error;
+      }
     },
     staleTime: 1000 * 60 * 2, // 2 minutes
+    retry: 2,
+    retryDelay: 1000,
   });
 };
 
@@ -62,13 +80,20 @@ export const useCategories = () => {
   return useQuery<Category[], Error>({
     queryKey: [CATEGORIES_QUERY_KEY],
     queryFn: async () => {
-      const response = await apiClient.get<Category[]>(`${BASE_URL}/categories`, {
-        params: {
-          per_page: 100,
-        },
-      });
-      return response.data;
+      try {
+        const response = await wordpressClient.get<Category[]>(`/categories`, {
+          params: {
+            per_page: 100,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
     },
     staleTime: 1000 * 60 * 60, // 1 hour
+    retry: 2,
+    retryDelay: 1000,
   });
 }; 
