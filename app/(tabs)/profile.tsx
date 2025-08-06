@@ -217,27 +217,27 @@ export default function ProfileScreen() {
                         <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>State</ThemedText>
                         <ThemedText style={[styles.detailValue, { color: colors.text }]}>{userProfile?.profile?.location || 'Not specified'}</ThemedText>
                     </View>
-                    <View style={styles.detailRow}>
+                            <View style={styles.detailRow}>
                         <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>Website</ThemedText>
                         <ThemedText style={[styles.detailValue, { color: colors.text }]}>{userProfile?.profile?.website ? extractUsername(userProfile.profile.website) : 'Not specified'}</ThemedText>
-                    </View>
+                                        </View>
                     <View style={styles.detailRow}>
                         <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>GitHub</ThemedText>
                         <ThemedText style={[styles.detailValue, { color: colors.text }]}>{userProfile?.profile?.github ? extractUsername(userProfile.profile.github) : 'Not specified'}</ThemedText>
-                    </View>
+                                </View>
                     <View style={styles.detailRow}>
                         <ThemedText style={[styles.detailLabel, { color: colors.textSecondary }]}>LinkedIn</ThemedText>
                         <ThemedText style={[styles.detailValue, { color: colors.text }]}>{userProfile?.profile?.linkedin ? extractUsername(userProfile.profile.linkedin) : 'Not specified'}</ThemedText>
-                    </View>
+                            </View>
                 </View>
 
                 <View style={[styles.actionsCard, { backgroundColor: colors.card }] }>
                     <View style={{ flexDirection: 'column', gap: 8 }}>
-                        <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/profile/edit')}>
-                            <FontAwesome5 name="user-edit" size={20} color={blue} style={styles.actionIcon} />
-                            <ThemedText style={[styles.actionText, { color: blue }]}>Edit Profile</ThemedText>
-                            <FontAwesome5 name="chevron-right" size={16} color={blue} />
-                        </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/profile/edit')}>
+                        <FontAwesome5 name="user-edit" size={20} color={blue} style={styles.actionIcon} />
+                        <ThemedText style={[styles.actionText, { color: blue }]}>Edit Profile</ThemedText>
+                        <FontAwesome5 name="chevron-right" size={16} color={blue} />
+                    </TouchableOpacity>
                         <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/about')}>
                             <FontAwesome5 name="info-circle" size={20} color={blue} style={styles.actionIcon} />
                             <ThemedText style={[styles.actionText, { color: blue }]}>About Us</ThemedText>

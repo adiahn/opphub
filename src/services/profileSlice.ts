@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import * as SecureStore from 'expo-secure-store';
+import apiClient from '../../services/apiClient';
 
 interface ProfileData {
   bio: string;
@@ -63,20 +64,16 @@ export const fetchProfile = createAsyncThunk(
     const token = await SecureStore.getItemAsync('userToken');
     if (!token) throw new Error('No token found');
 
-    const response = await fetch('https://oppotunitieshubbackend.onrender.com/api/profile', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to fetch profile');
+    try {
+      const response = await apiClient.get('/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch profile');
     }
-
-    const data = await response.json();
-    return data;
   }
 );
 
@@ -86,23 +83,16 @@ export const updateProfile = createAsyncThunk(
     const token = await SecureStore.getItemAsync('userToken');
     if (!token) throw new Error('No token found');
 
-    const response = await fetch('https://oppotunitieshubbackend.onrender.com/api/profile/basic', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(updateData),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update profile');
+    try {
+      const response = await apiClient.put('/profile/basic', updateData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to update profile');
     }
-
-    const data = await response.json();
-    return data;
   }
 );
 

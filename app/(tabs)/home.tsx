@@ -177,16 +177,16 @@ export default function HomeScreen() {
   // Handle initial and paginated posts
   useEffect(() => {
     try {
-      if (postsData && page === 1) {
+    if (postsData && page === 1) {
         setAllPosts(postsData.data || []);
         setHasMore(page < (postsData.totalPages || 1));
-      } else if (postsData && page > 1) {
-        setAllPosts(prev => {
+    } else if (postsData && page > 1) {
+      setAllPosts(prev => {
           const newPosts = (postsData.data || []).filter(
-            (p) => !prev.some((existing) => existing.id === p.id)
-          );
-          return [...prev, ...newPosts];
-        });
+          (p) => !prev.some((existing) => existing.id === p.id)
+        );
+        return [...prev, ...newPosts];
+      });
         setHasMore(page < (postsData.totalPages || 1));
       }
     } catch (error) {
@@ -196,20 +196,20 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     try {
-      if (!isOnline) {
-        Alert.alert(
-          "No Internet Connection",
-          "Please check your internet connection and try again."
-        );
-        return;
-      }
-      setPage(1);
-      setAllPosts([]);
-      await Promise.all([
-        refetchPosts(),
-        refetchFreshPosts(),
-        refetchCategories()
-      ]);
+    if (!isOnline) {
+      Alert.alert(
+        "No Internet Connection",
+        "Please check your internet connection and try again."
+      );
+      return;
+    }
+    setPage(1);
+    setAllPosts([]);
+    await Promise.all([
+      refetchPosts(),
+      refetchFreshPosts(),
+      refetchCategories()
+    ]);
     } catch (error) {
       console.error('Error during refresh:', error);
     }
@@ -217,10 +217,10 @@ export default function HomeScreen() {
 
   const loadMore = async () => {
     try {
-      if (!hasMore || isLoadingMore) return;
-      setIsLoadingMore(true);
-      setPendingPage(page + 1);
-      setPage(prev => prev + 1);
+    if (!hasMore || isLoadingMore) return;
+    setIsLoadingMore(true);
+    setPendingPage(page + 1);
+    setPage(prev => prev + 1);
     } catch (error) {
       console.error('Error loading more posts:', error);
       setIsLoadingMore(false);
@@ -242,8 +242,8 @@ export default function HomeScreen() {
     ? filteredPosts
     : filteredPosts.filter((post: Post) => {
         try {
-          const postCategories = post._embedded?.['wp:term']?.[0]?.map((cat: any) => cat.id) || [];
-          return postCategories.includes(selectedCategory);
+        const postCategories = post._embedded?.['wp:term']?.[0]?.map((cat: any) => cat.id) || [];
+        return postCategories.includes(selectedCategory);
         } catch (error) {
           console.error('Error filtering by category:', error);
           return false;

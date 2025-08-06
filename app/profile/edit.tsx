@@ -228,7 +228,7 @@ export default function EditProfileScreen() {
       style={[styles.container, { backgroundColor: colorSet.background }]}
     >
       <ScrollView 
-        style={styles.content}
+        style={styles.content} 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           flexGrow: 1,
@@ -277,9 +277,9 @@ export default function EditProfileScreen() {
               <ThemedText style={[styles.label, { color: colorSet.text }]}>Name</ThemedText>
               <View style={[styles.nameField, { backgroundColor: isDark ? '#23272F' : '#f2f2f2' }]}><ThemedText style={[styles.value, { color: colorSet.text }]}>{profile?.name || ''}</ThemedText></View>
             </View>
-            <View style={styles.formGroup}>
+          <View style={styles.formGroup}>
               <ThemedText style={[styles.label, { color: colorSet.text }]}>Skill</ThemedText>
-              <TextInput
+            <TextInput
                 style={[
                   styles.input,
                   {
@@ -288,16 +288,16 @@ export default function EditProfileScreen() {
                     borderColor: isDark ? '#333' : '#e0e0e0',
                   },
                 ]}
-                value={skill}
-                onChangeText={setSkill}
-                placeholder="e.g., Graphic Designer, Web Developer, UI/UX Designer"
+              value={skill}
+              onChangeText={setSkill}
+              placeholder="e.g., Graphic Designer, Web Developer, UI/UX Designer"
                 placeholderTextColor={colorSet.textSecondary}
-                accessibilityLabel="Skill or profession"
-              />
-            </View>
-            <View style={styles.formGroup}>
+              accessibilityLabel="Skill or profession"
+            />
+          </View>
+          <View style={styles.formGroup}>
               <ThemedText style={[styles.label, { color: colorSet.text }]}>Location</ThemedText>
-              <TextInput
+            <TextInput
                 style={[
                   styles.input,
                   {
@@ -306,16 +306,16 @@ export default function EditProfileScreen() {
                     borderColor: isDark ? '#333' : '#e0e0e0',
                   },
                 ]}
-                value={location}
-                onChangeText={setLocation}
-                placeholder="City, Country"
+              value={location}
+              onChangeText={setLocation}
+              placeholder="City, Country"
                 placeholderTextColor={colorSet.textSecondary}
-                accessibilityLabel="Location"
-              />
-            </View>
-            <View style={styles.formGroup}>
+              accessibilityLabel="Location"
+            />
+          </View>
+          <View style={styles.formGroup}>
               <ThemedText style={[styles.label, { color: colorSet.text }]}>Website</ThemedText>
-              <TextInput
+            <TextInput
                 style={[
                   styles.input,
                   {
@@ -324,18 +324,18 @@ export default function EditProfileScreen() {
                     borderColor: isDark ? '#333' : '#e0e0e0',
                   },
                 ]}
-                value={website}
-                onChangeText={setWebsite}
-                placeholder="https://your-website.com"
+              value={website}
+              onChangeText={setWebsite}
+              placeholder="https://your-website.com"
                 placeholderTextColor={colorSet.textSecondary}
-                autoCapitalize="none"
-                keyboardType="url"
-                accessibilityLabel="Website URL"
-              />
-            </View>
-            <View style={styles.formGroup}>
+              autoCapitalize="none"
+              keyboardType="url"
+              accessibilityLabel="Website URL"
+            />
+          </View>
+          <View style={styles.formGroup}>
               <ThemedText style={[styles.label, { color: colorSet.text }]}>GitHub</ThemedText>
-              <TextInput
+            <TextInput
                 style={[
                   styles.input,
                   {
@@ -344,17 +344,17 @@ export default function EditProfileScreen() {
                     borderColor: isDark ? '#333' : '#e0e0e0',
                   },
                 ]}
-                value={github}
-                onChangeText={setGithub}
-                placeholder="github.com/username"
+              value={github}
+              onChangeText={setGithub}
+              placeholder="github.com/username"
                 placeholderTextColor={colorSet.textSecondary}
-                autoCapitalize="none"
-                accessibilityLabel="GitHub URL"
-              />
-            </View>
-            <View style={styles.formGroup}>
+              autoCapitalize="none"
+              accessibilityLabel="GitHub URL"
+            />
+          </View>
+          <View style={styles.formGroup}>
               <ThemedText style={[styles.label, { color: colorSet.text }]}>LinkedIn</ThemedText>
-              <TextInput
+            <TextInput
                 style={[
                   styles.input,
                   {
@@ -363,14 +363,14 @@ export default function EditProfileScreen() {
                     borderColor: isDark ? '#333' : '#e0e0e0',
                   },
                 ]}
-                value={linkedin}
-                onChangeText={setLinkedin}
-                placeholder="linkedin.com/in/username"
+              value={linkedin}
+              onChangeText={setLinkedin}
+              placeholder="linkedin.com/in/username"
                 placeholderTextColor={colorSet.textSecondary}
-                autoCapitalize="none"
-                accessibilityLabel="LinkedIn URL"
-              />
-            </View>
+              autoCapitalize="none"
+              accessibilityLabel="LinkedIn URL"
+            />
+          </View>
           </View>
         </View>
         {error && (

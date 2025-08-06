@@ -37,7 +37,7 @@ export default function AboutScreen() {
             <View style={[styles.logoContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)' }]}>
               <Ionicons name="rocket" size={40} color="#fff" />
             </View>
-            <ThemedText style={styles.appName}>Opportunitiesx Hub</ThemedText>
+            <ThemedText style={styles.appName}>Opportunities Hub</ThemedText>
             <ThemedText style={styles.tagline}>Empowering Nigerian Youth</ThemedText>
           </View>
         </LinearGradient>
@@ -91,30 +91,42 @@ export default function AboutScreen() {
               <Ionicons name="shield-checkmark" size={24} color={colors.tint} />
               <ThemedText style={styles.sectionTitle}>Why Choose Us</ThemedText>
             </View>
-            
-            <View style={styles.benefitGrid}>
-              <View style={[styles.benefitCard, { backgroundColor: isDark ? '#1a1a2e' : '#fff' }]}>
-                <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                <ThemedText style={styles.benefitTitle}>Verified Opportunities</ThemedText>
-                <ThemedText style={styles.benefitText}>All opportunities are carefully vetted and verified</ThemedText>
+            <View style={styles.featureListModern}>
+              {/* Verified Opportunities */}
+              <View style={styles.featureRow}>
+                <View style={[styles.accentBar, { backgroundColor: '#4CAF50' }]} />
+                <Ionicons name="checkmark-circle" size={24} color="#4CAF50" style={styles.featureIcon} />
+                <View style={styles.featureTextBlock}>
+                  <ThemedText style={styles.featureTitleModern}>Verified Opportunities</ThemedText>
+                  <ThemedText style={styles.featureDescModern}>All opportunities are carefully vetted and verified</ThemedText>
+                </View>
               </View>
-              
-              <View style={[styles.benefitCard, { backgroundColor: isDark ? '#1a1a2e' : '#fff' }]}>
-                <Ionicons name="time" size={24} color="#2196F3" />
-                <ThemedText style={styles.benefitTitle}>Real-time Updates</ThemedText>
-                <ThemedText style={styles.benefitText}>Stay updated with the latest opportunities</ThemedText>
+              {/* Real-time Updates */}
+              <View style={styles.featureRow}>
+                <View style={[styles.accentBar, { backgroundColor: '#2196F3' }]} />
+                <Ionicons name="time" size={24} color="#2196F3" style={styles.featureIcon} />
+                <View style={styles.featureTextBlock}>
+                  <ThemedText style={styles.featureTitleModern}>Real-time Updates</ThemedText>
+                  <ThemedText style={styles.featureDescModern}>Stay updated with the latest opportunities</ThemedText>
+                </View>
               </View>
-              
-              <View style={[styles.benefitCard, { backgroundColor: isDark ? '#1a1a2e' : '#fff' }]}>
-                <Ionicons name="phone-portrait" size={24} color="#FF9800" />
-                <ThemedText style={styles.benefitTitle}>Clean Interface</ThemedText>
-                <ThemedText style={styles.benefitText}>User-friendly design for seamless experience</ThemedText>
+              {/* Clean Interface */}
+              <View style={styles.featureRow}>
+                <View style={[styles.accentBar, { backgroundColor: '#FF9800' }]} />
+                <Ionicons name="phone-portrait" size={24} color="#FF9800" style={styles.featureIcon} />
+                <View style={styles.featureTextBlock}>
+                  <ThemedText style={styles.featureTitleModern}>Clean Interface</ThemedText>
+                  <ThemedText style={styles.featureDescModern}>User-friendly design for seamless experience</ThemedText>
+                </View>
               </View>
-              
-              <View style={[styles.benefitCard, { backgroundColor: isDark ? '#1a1a2e' : '#fff' }]}>
-                <Ionicons name="people" size={24} color="#9C27B0" />
-                <ThemedText style={styles.benefitTitle}>Community Focus</ThemedText>
-                <ThemedText style={styles.benefitText}>Built specifically for Nigerian youth</ThemedText>
+              {/* Community Focus */}
+              <View style={styles.featureRow}>
+                <View style={[styles.accentBar, { backgroundColor: '#9C27B0' }]} />
+                <Ionicons name="people" size={24} color="#9C27B0" style={styles.featureIcon} />
+                <View style={styles.featureTextBlock}>
+                  <ThemedText style={styles.featureTitleModern}>Community Focus</ThemedText>
+                  <ThemedText style={styles.featureDescModern}>Built specifically for Nigerian youth</ThemedText>
+                </View>
               </View>
             </View>
           </View>
@@ -211,14 +223,21 @@ const styles = StyleSheet.create({
   benefitGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
+    justifyContent: 'center', // center cards horizontally
+    gap: 20, // more space between cards
+    rowGap: 20,
+    marginTop: 8,
   },
   benefitCard: {
-    width: '48%',
-    padding: 16,
-    borderRadius: 12,
+    flexBasis: '45%', // two cards per row with gap
+    maxWidth: '45%',
+    minWidth: 160,
+    marginHorizontal: 8, // horizontal margin for spacing
+    marginBottom: 0, // gap handles vertical spacing
+    padding: 20, // more padding for modern look
+    borderRadius: 16,
     alignItems: 'center',
+    backgroundColor: '#23272F', // ensure dark card for dark mode
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -273,5 +292,39 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
     zIndex: 1000,
+  },
+  featureListModern: {
+    gap: 18,
+    marginTop: 8,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 0,
+  },
+  accentBar: {
+    width: 5,
+    height: 48,
+    borderRadius: 3,
+    marginRight: 14,
+    marginTop: 2,
+  },
+  featureIcon: {
+    marginRight: 14,
+    marginTop: 2,
+  },
+  featureTextBlock: {
+    flex: 1,
+  },
+  featureTitleModern: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 2,
+    color: '#fff',
+  },
+  featureDescModern: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 18,
   },
 }); 

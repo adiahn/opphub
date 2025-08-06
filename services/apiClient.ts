@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create separate clients for different APIs
 const backendClient = axios.create({
-  baseURL: 'https://oppotunitieshubbackend.onrender.com/api',
+  baseURL: 'https://oppotunitieshubbackend-s4y2.vercel.app/api',
   headers: {
     'Content-Type': 'application/json',
   },
