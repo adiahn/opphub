@@ -3,20 +3,53 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../services/store';
 
-const TAB_CONFIG = [
+const AUTHENTICATED_TAB_CONFIG = [
   { name: 'home', label: 'Home', icon: 'home-outline' },
   { name: 'search', label: 'Search', icon: 'search-outline' },
   { name: 'community', label: 'Skills Bank', icon: 'people-outline' },
   { name: 'profile', label: 'Profile', icon: 'person-outline' },
 ];
 
+const GUEST_TAB_CONFIG = [
+  { name: 'home', label: 'Home', icon: 'home-outline' },
+  { name: 'search', label: 'Search', icon: 'search-outline' },
+  { name: 'login', label: 'Sign In', icon: 'log-in-outline' },
+];
+
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const theme = useColorScheme() ?? 'light';
   const isDark = theme === 'dark';
   const colorSet = Colors[theme];
+  const router = useRouter();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  
+  // Use different tab config based on authentication status
+  const tabConfig = isAuthenticated ? AUTHENTICATED_TAB_CONFIG : GUEST_TAB_CONFIG;
+
+  const handleTabPress = (routeName: string) => {
+    if (routeName === 'login') {
+      // Navigate to login screen
+      router.push('/login');
+      return;
+    }
+    
+    // For other tabs, use normal navigation
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: routeName,
+      canPreventDefault: true,
+    });
+    
+    if (!event.defaultPrevented) {
+      navigation.navigate(routeName);
+    }
+  };
+
   return (
     <View style={styles.tabBarContainer}>
       <View style={[styles.tabBar, { backgroundColor: colorSet.card, shadowColor: colorSet.icon }] }>
@@ -29,25 +62,17 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               ? options.title
               : route.name;
           const isFocused = state.index === index;
-          const tabConfig = TAB_CONFIG.find(tab => tab.name === route.name);
-          const tabLabel = typeof tabConfig?.label === 'string' ? tabConfig.label : (typeof label === 'string' ? label : '');
-          const iconName = tabConfig?.icon || 'ellipse-outline';
+          const tabConfigItem = tabConfig.find(tab => tab.name === route.name);
+          const tabLabel = typeof tabConfigItem?.label === 'string' ? tabConfigItem.label : (typeof label === 'string' ? label : '');
+          const iconName = tabConfigItem?.icon || 'ellipse-outline';
+          
           return (
             <TouchableOpacity
               key={route.key}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
               accessibilityLabel={options.tabBarAccessibilityLabel}
-              onPress={() => {
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-                if (!isFocused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
-              }}
+              onPress={() => handleTabPress(route.name)}
               style={styles.tabItem}
               activeOpacity={0.8}
             >
@@ -71,6 +96,8 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabLayout() {
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+
   return (
     <Tabs
       tabBar={props => <CustomTabBar {...props} />}
@@ -80,8 +107,19 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="home" />
       <Tabs.Screen name="search" />
-      <Tabs.Screen name="community" />
-      <Tabs.Screen name="profile" />
+      {isAuthenticated ? (
+        <>
+          <Tabs.Screen name="community" />
+          <Tabs.Screen name="profile" />
+        </>
+      ) : (
+        <Tabs.Screen 
+          name="login" 
+          options={{
+            href: null, // This prevents the tab from being rendered as a screen
+          }}
+        />
+      )}
     </Tabs>
   );
 }

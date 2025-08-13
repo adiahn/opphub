@@ -108,17 +108,14 @@ export default function OnboardingScreen() {
       // Mark onboarding as completed
       await SecureStore.setItemAsync('onboardingCompleted', 'true');
       
-      // Set a flag to indicate user just completed onboarding
-      await SecureStore.setItemAsync('justCompletedOnboarding', 'true');
-      
-      console.log('Onboarding: Marked as completed, navigating to login');
+      console.log('Onboarding: Marked as completed, navigating to home');
       
       // Add a small delay to ensure the storage is updated
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Navigate to login
-      console.log('Onboarding: About to navigate to /login');
-      router.push('/login');
+      // Navigate to home screen (guest mode)
+      console.log('Onboarding: About to navigate to home');
+      router.replace('/(tabs)/home');
       console.log('Onboarding: Navigation command sent');
     } catch (error) {
       console.error('Onboarding: Error in handleGetStarted:', error);

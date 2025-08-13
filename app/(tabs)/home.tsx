@@ -12,9 +12,59 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Dimensions, Image, Modal, NativeScrollEvent, NativeSyntheticEvent, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../services/store';
 
 const { width } = Dimensions.get('window');
 const POSTS_PER_PAGE = 10;
+
+// Guest Mode Banner Component
+const GuestModeBanner = () => {
+  const theme = useColorScheme() ?? 'light';
+  const isDark = theme === 'dark';
+  const colorSet = Colors[theme];
+  const router = useRouter();
+
+  return (
+    <View style={[
+      styles.guestBanner,
+      {
+        backgroundColor: isDark ? 'rgba(74, 144, 226, 0.05)' : 'rgba(0, 122, 255, 0.05)',
+        borderColor: isDark ? 'rgba(74, 144, 226, 0.2)' : 'rgba(0, 122, 255, 0.2)',
+      }
+    ]}>
+      <View style={styles.guestBannerContent}>
+        <Ionicons 
+          name="star-outline" 
+          size={16} 
+          color={isDark ? '#4A90E2' : colorSet.tint} 
+        />
+        <View style={styles.guestBannerText}>
+          <ThemedText style={[
+            styles.guestBannerTitle,
+            { color: isDark ? '#4A90E2' : colorSet.tint }
+          ]}>
+            Sign in for more features
+          </ThemedText>
+        </View>
+      </View>
+      <TouchableOpacity
+        style={[
+          styles.guestBannerButton,
+          { backgroundColor: isDark ? '#4A90E2' : colorSet.tint }
+        ]}
+        onPress={() => router.push('/login')}
+      >
+        <ThemedText style={[
+          styles.guestBannerButtonText,
+          { color: '#fff' }
+        ]}>
+          Sign In
+        </ThemedText>
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 const CategoryPill = ({ category, isSelected, onPress }: { category: { id: 'all' | number; name: string }; isSelected: boolean; onPress: () => void }) => (
   <TouchableOpacity
@@ -143,6 +193,9 @@ export default function HomeScreen() {
   const [search, setSearch] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [logoError, setLogoError] = useState(false);
+
+  // Authentication state
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   // React Query hooks
   const { 
@@ -380,6 +433,9 @@ export default function HomeScreen() {
         }
         contentContainerStyle={{ paddingBottom: 140 }}
       >
+        {/* Guest Mode Banner */}
+        {!isAuthenticated && <GuestModeBanner />}
+        
         {freshPosts && freshPosts.length > 0 && (
           <>
             <View style={styles.sectionHeaderRow}>
@@ -766,5 +822,36 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     marginLeft: -30,
+  },
+  guestBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  guestBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  guestBannerText: {
+    marginLeft: 8,
+  },
+  guestBannerTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  guestBannerButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  guestBannerButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

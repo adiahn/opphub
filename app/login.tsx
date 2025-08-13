@@ -94,6 +94,12 @@ export default function LoginScreen() {
     }
   };
 
+  const handleContinueAsGuest = () => {
+    console.log('User chose to continue as guest');
+    // Navigate to home screen in guest mode
+    router.replace('/(tabs)/home');
+  };
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView 
@@ -224,6 +230,22 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
+          {/* Separator */}
+          <View style={styles.separatorContainer}>
+            <View style={styles.separatorLine} />
+            <Text style={styles.separatorText}>or</Text>
+            <View style={styles.separatorLine} />
+          </View>
+
+          {/* Continue as Guest Button */}
+          <TouchableOpacity 
+            style={styles.continueAsGuestButton}
+            onPress={handleContinueAsGuest}
+          >
+            <Ionicons name="person-outline" size={18} color="#666" style={{ marginRight: 8 }} />
+            <Text style={styles.continueAsGuestButtonText}>Continue as Guest</Text>
+          </TouchableOpacity>
+
           {/* Sign Up Link */}
           <View style={styles.signupContainer}>
             <Text style={styles.signupText}>Don't have an account? </Text>
@@ -322,6 +344,21 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  continueAsGuestButton: {
+    backgroundColor: '#e0e0e0', // A neutral color for guest option
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    marginBottom: 24,
+    flexDirection: 'row', // Added for icon alignment
+  },
+  continueAsGuestButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -373,5 +410,21 @@ const styles = StyleSheet.create({
   },
   networkErrorBanner: {
     backgroundColor: '#f39c12', // orange for network errors
+  },
+  separatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    marginHorizontal: 10,
+  },
+  separatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#eee',
+  },
+  separatorText: {
+    marginHorizontal: 10,
+    color: '#666',
+    fontSize: 16,
   },
 }); 
