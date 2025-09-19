@@ -6,7 +6,7 @@ import { UserProfile } from '@/types';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useDispatch, useSelector } from 'react-redux';
@@ -32,14 +32,16 @@ function extractUsername(url: string): string {
 }
 
 export default function ProfileScreen() {
+    // All hooks must be called first, before any conditional logic
     const { colors, theme } = useTheme();
     const isDark = theme === 'dark';
     const dispatch = useDispatch<AppDispatch>();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
+    const [hasFetchError, setHasFetchError] = useState(false); // Add error state
 
     const profileState = useSelector((state: RootState): ProfileState => state.profile as ProfileState);
-    const { data: userProfile, loading: profileLoading } = profileState;
+    const { data: userProfile, loading: profileLoading, error: profileError } = profileState;
 
     const checkInState = useSelector((state: RootState) => state.checkIn);
     const { loading: checkInLoading, todayCheckedIn } = checkInState;
@@ -47,29 +49,57 @@ export default function ProfileScreen() {
     const authState = useSelector((state: RootState) => state.auth);
     const { loading: logoutLoading, isAuthenticated } = authState;
 
+    // All useEffect hooks must be called before any conditional logic
     useFocusEffect(
         useCallback(() => {
-          if (isAuthenticated && !profileLoading && !userProfile) {
-            dispatch(fetchProfile());
+          if (isAuthenticated && !profileLoading && !userProfile && !hasFetchError) {
+            console.log('[PROFILE] Fetching profile data...');
+            dispatch(fetchProfile()).catch((error) => {
+              console.error('[PROFILE] Failed to fetch profile:', error);
+              setHasFetchError(true); // Prevent infinite retries
+              Toast.show({
+                type: 'error',
+                text1: 'Failed to load profile',
+                text2: 'Please try again later',
+              });
+            });
           }
-        }, [dispatch, isAuthenticated, profileLoading, userProfile])
+        }, [dispatch, isAuthenticated, profileLoading, userProfile, hasFetchError])
     );
+
+    // Reset error state when profile data is successfully loaded
+    useEffect(() => {
+      if (userProfile && hasFetchError) {
+        setHasFetchError(false);
+      }
+    }, [userProfile, hasFetchError]);
 
     const onRefresh = useCallback(async () => {
         setIsRefreshing(true);
+        setHasFetchError(false); // Reset error state on manual refresh
         try {
             if (isAuthenticated) {
                 await dispatch(fetchProfile()).unwrap();
             }
         } catch (error) {
+            console.error('[PROFILE] Refresh failed:', error);
+            setHasFetchError(true);
             Toast.show({
                 type: 'error',
                 text1: 'Failed to refresh profile',
+                text2: 'Please try again later',
             });
         } finally {
             setIsRefreshing(false);
         }
     }, [dispatch, isAuthenticated]);
+
+    // Now we can have conditional logic and early returns
+    // Guard: If not authenticated, don't render anything
+    // This prevents any API calls or rendering for guests
+    if (!isAuthenticated) {
+        return null;
+    }
 
     const handleCheckIn = async () => {
         try {
@@ -146,8 +176,45 @@ export default function ProfileScreen() {
     };
     const levelColor = levelColors[userProfile?.level || 'Newcomer'] || levelColors['Newcomer'];
 
-    // Guard: if userProfile or userProfile.profile is missing, show loading spinner
-    if (profileLoading || !userProfile || !userProfile.profile) {
+    // Guard: if userProfile or userProfile.profile is missing, show loading spinner or error state
+    if (profileLoading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }] }>
+                <ActivityIndicator size="large" color={isDark ? '#4A90E2' : colors.primary} />
+            </View>
+        );
+    }
+
+    // Show error state if there's a persistent error
+    if (hasFetchError || profileError) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }] }>
+                <View style={[styles.errorContainer, { backgroundColor: colors.card }]}>
+                    <Ionicons name="cloud-offline-outline" size={64} color={colors.textSecondary} />
+                    <ThemedText style={[styles.errorTitle, { color: colors.text }]}>
+                        Failed to Load Profile
+                    </ThemedText>
+                    <ThemedText style={[styles.errorMessage, { color: colors.textSecondary }]}>
+                        {profileError || 'Unable to load your profile data. Please check your connection and try again.'}
+                    </ThemedText>
+                    <TouchableOpacity 
+                        style={[styles.retryButton, { backgroundColor: isDark ? '#4A90E2' : colors.primary }]}
+                        onPress={() => {
+                            setHasFetchError(false);
+                            dispatch(fetchProfile());
+                        }}
+                    >
+                        <ThemedText style={[styles.retryButtonText, { color: '#fff' }]}>
+                            Try Again
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
+    // Show loading if no profile data yet
+    if (!userProfile || !userProfile.profile) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }] }>
                 <ActivityIndicator size="large" color={isDark ? '#4A90E2' : colors.primary} />
@@ -469,5 +536,34 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 4,
         zIndex: 1000,
+    },
+    errorContainer: {
+        padding: 20,
+        borderRadius: 15,
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '90%',
+        marginTop: 20,
+    },
+    errorTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginTop: 10,
+        textAlign: 'center',
+    },
+    errorMessage: {
+        fontSize: 14,
+        marginTop: 5,
+        textAlign: 'center',
+    },
+    retryButton: {
+        marginTop: 20,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+    },
+    retryButtonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
     },
 }); 

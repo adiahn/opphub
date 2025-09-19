@@ -1,9 +1,10 @@
 import { Colors } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Image, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearError, clearUserData, login } from '../services/authSlice';
 import type { AppDispatch, RootState } from '../services/store';
@@ -11,63 +12,126 @@ import type { AppDispatch, RootState } from '../services/store';
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
-  const [showAuthError, setShowAuthError] = useState(true);
-
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const router = useRouter();
+  
+  // Redux hooks - must be called before any conditional logic
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error: authError, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-
+  // All useEffect hooks must be called before any early returns
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
   }, []);
 
-  // Clear auth error when component mounts
+  // Listen for auth state changes
   useEffect(() => {
-    dispatch(clearError());
-    setShowAuthError(true);
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (authError) setShowAuthError(true);
-  }, [authError]);
-
-  // Navigate to home when authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      console.log('User authenticated, navigating to home');
+    if (isAuthenticated && !loading) {
+      console.log('Login: User authenticated, navigating to home');
       router.replace('/(tabs)/home');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loading, router]);
+
+  // Listen for auth errors
+  useEffect(() => {
+    if (authError) {
+      console.log('Login: Auth error detected:', authError);
+      
+      // Show specific message for rate limiting
+      if (authError.includes('Too many requests') || authError.includes('Too many login attempts')) {
+        Toast.show({
+          type: 'error',
+          text1: 'Rate Limited',
+          text2: 'Too many login attempts. Please wait 2-3 minutes before trying again.',
+          visibilityTime: 5000,
+        });
+      } else {
+        Toast.show({
+          type: 'error',
+          text1: 'Login Failed',
+          text2: authError,
+        });
+      }
+    }
+  }, [authError]);
+
+  // Animation effects
+  useEffect(() => {
+    if (keyboardVisible) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0.3,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: -50,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [keyboardVisible, fadeAnim, slideAnim]);
+
+  // Now we can have conditional logic and early returns
+  if (isAuthenticated) {
+    return null; // Don't render login screen if already authenticated
+  }
 
   const validateForm = () => {
-    const newErrors: { username?: string; password?: string } = {};
-    
+    const newErrors: { [key: string]: string } = {};
+
     if (!username.trim()) {
-      newErrors.username = 'Username or email is required';
+      newErrors.username = 'Username is required';
     }
-    
+
     if (!password.trim()) {
       newErrors.password = 'Password is required';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  const handleUsernameChange = (text: string) => {
+    setUsername(text);
+    if (errors.username) {
+      setErrors(prev => ({ ...prev, username: '' }));
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (errors.password) {
+      setErrors(prev => ({ ...prev, password: '' }));
+    }
   };
 
   const handleLogin = async () => {
@@ -85,6 +149,10 @@ export default function LoginScreen() {
 
     try {
       console.log('Starting login process...');
+      
+      // Add a small delay to help with rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const result = await dispatch(login({ email: username, password })).unwrap();
       console.log('Login successful:', result);
       // Navigation will be handled by the useEffect above
@@ -134,7 +202,7 @@ export default function LoginScreen() {
           ]}
         >
           {/* General Error Message */}
-          {authError && showAuthError && (
+          {authError && (
             <View style={
               authError.includes('Unable to connect to the server')
                 ? [styles.errorBanner, styles.networkErrorBanner]
@@ -153,7 +221,6 @@ export default function LoginScreen() {
               <Text style={styles.errorBannerText}>{authError}</Text>
               <TouchableOpacity
                 onPress={() => {
-                  setShowAuthError(false);
                   dispatch(clearError());
                 }}
                 style={styles.errorBannerDismiss}
@@ -175,10 +242,7 @@ export default function LoginScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               value={username}
-              onChangeText={(text) => {
-                setUsername(text);
-                if (errors.username) setErrors(prev => ({ ...prev, username: undefined }));
-              }}
+              onChangeText={handleUsernameChange}
             />
           </View>
           {errors.username && <Text style={styles.fieldErrorText}>{errors.username}</Text>}
@@ -194,10 +258,7 @@ export default function LoginScreen() {
               placeholderTextColor="#666"
               secureTextEntry={!showPassword}
               value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
-              }}
+              onChangeText={handlePasswordChange}
             />
             <TouchableOpacity 
               style={styles.showPasswordButton}

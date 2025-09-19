@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { ProfileData, UserProfile } from '../types';
 import apiClient from './apiClient';
+import { clearUserData } from './authSlice';
 import { performCheckIn } from './checkInSlice';
 
 interface ProfileState {
@@ -29,11 +30,33 @@ export const fetchProfile = createAsyncThunk(
       return state.profile.data;
     }
 
-    try {
-      const response = await apiClient.get('/profile');
-      return response.data;
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch profile');
+    let attempt = 0;
+    const maxAttempts = 2; // Lower attempts for profile fetch
+
+    while (attempt < maxAttempts) {
+      try {
+        const response = await apiClient.get('/profile');
+        return response.data;
+      } catch (error: any) {
+        attempt++;
+        
+        // Check if it's a rate limit error
+        if (error.response?.data?.message?.includes('Too many requests') || 
+            error.response?.status === 429) {
+          
+          if (attempt < maxAttempts) {
+            const delay = Math.min(Math.pow(2, attempt) * 1000, 10000); // Max 10s for profile
+            console.log(`Profile fetch rate limited. Waiting ${delay}ms before retry ${attempt}/${maxAttempts}...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue; // Retry
+          } else {
+            return rejectWithValue('Too many requests. Please wait a moment and try again.');
+          }
+        }
+
+        // For non-rate-limit errors, don't retry
+        return rejectWithValue(error.response?.data?.message || 'Failed to fetch profile');
+      }
     }
   }
 );
@@ -99,28 +122,10 @@ const profileSlice = createSlice({
             ...action.payload.streak,
             lastCheckIn: new Date().toISOString(),
           };
-          state.data.level = action.payload.level;
-          state.data.xp = action.payload.xp;
         }
       })
-      // Handle logout by listening to the auth/logout action type
-      .addCase('auth/logout/fulfilled', (state) => {
-        // Clear profile data when user logs out
-        state.data = null;
-        state.loading = false;
-        state.error = null;
-        state.lastFetched = null;
-      })
-      .addCase('auth/logout/rejected', (state) => {
-        // Also clear profile data if logout fails
-        state.data = null;
-        state.loading = false;
-        state.error = null;
-        state.lastFetched = null;
-      })
-      // Handle user data clearing when switching users
-      .addCase('auth/clearUserData', (state) => {
-        // Clear profile data when switching users
+      // Listen for clearUserData action from auth slice
+      .addCase(clearUserData, (state) => {
         state.data = null;
         state.loading = false;
         state.error = null;

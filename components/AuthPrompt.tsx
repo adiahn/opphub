@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface AuthPromptProps {
   title?: string;
@@ -25,52 +26,59 @@ export function AuthPrompt({
   const router = useRouter();
 
   return (
-    <View style={[styles.container, { backgroundColor: colorSet.background }]}>
-      <View style={[styles.content, { backgroundColor: colorSet.card }]}>
-        <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(74, 144, 226, 0.1)' : 'rgba(0, 122, 255, 0.1)' }]}>
-          <Ionicons 
-            name={icon as any} 
-            size={48} 
-            color={isDark ? '#4A90E2' : colorSet.tint} 
-          />
+    <SafeAreaView style={[styles.container, { backgroundColor: colorSet.background }]}>
+      <View style={styles.contentWrapper}>
+        <View style={[styles.content, { backgroundColor: colorSet.card }]}>
+          <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(74, 144, 226, 0.1)' : 'rgba(0, 122, 255, 0.1)' }]}>
+            <Ionicons 
+              name={icon as any} 
+              size={48} 
+              color={isDark ? '#4A90E2' : colorSet.tint} 
+            />
+          </View>
+          
+          <ThemedText style={[styles.title, { color: colorSet.text }]}>
+            {title}
+          </ThemedText>
+          
+          <ThemedText style={[styles.message, { color: colorSet.textSecondary }]}>
+            {message}
+          </ThemedText>
+          
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: isDark ? '#4A90E2' : colorSet.tint }]}
+            onPress={() => router.push('/login')}
+          >
+            <ThemedText style={[styles.buttonText, { color: '#fff' }]}>
+              {buttonText}
+            </ThemedText>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <ThemedText style={[styles.backButtonText, { color: colorSet.textSecondary }]}>
+              Go Back
+            </ThemedText>
+          </TouchableOpacity>
         </View>
-        
-        <ThemedText style={[styles.title, { color: colorSet.text }]}>
-          {title}
-        </ThemedText>
-        
-        <ThemedText style={[styles.message, { color: colorSet.textSecondary }]}>
-          {message}
-        </ThemedText>
-        
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: isDark ? '#4A90E2' : colorSet.tint }]}
-          onPress={() => router.push('/login')}
-        >
-          <ThemedText style={[styles.buttonText, { color: '#fff' }]}>
-            {buttonText}
-          </ThemedText>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ThemedText style={[styles.backButtonText, { color: colorSet.textSecondary }]}>
-            Go Back
-          </ThemedText>
-        </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: 'transparent', // Changed from '#000' to transparent
+  },
+  contentWrapper: {
+    flex: 1,
+    justifyContent: 'flex-start', // Changed from 'center' to 'flex-start'
     alignItems: 'center',
-    padding: 20,
+    paddingTop: 120, // Added top padding to bring card down
+    paddingHorizontal: 20,
   },
   content: {
     width: '100%',

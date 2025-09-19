@@ -7,6 +7,7 @@ import type { AppDispatch, RootState } from '../services/store';
 import { AuthPrompt } from './AuthPrompt';
 
 export function AuthNavigator() {
+  // All hooks must be called first, before any conditional logic
   const { isAuthenticated, loading } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch<AppDispatch>();
   const [isAuthInitialized, setIsAuthInitialized] = useState(false);
@@ -86,6 +87,7 @@ export function AuthNavigator() {
     return authRoutes.includes(path);
   };
 
+  // All useEffect hooks must be called before any conditional logic
   useEffect(() => {
     const initializeApp = async () => {
       try {
@@ -149,6 +151,7 @@ export function AuthNavigator() {
       if (pathname !== '/onboarding') {
         router.replace('/onboarding');
       }
+      setShowAuthPrompt(false); // Hide auth prompt
       return;
     }
 
@@ -160,19 +163,27 @@ export function AuthNavigator() {
         setAuthPromptConfig(config);
         setShowAuthPrompt(true);
         return;
+      } else {
+        // User is authenticated and accessing protected route, hide prompt
+        setShowAuthPrompt(false);
       }
+    } else {
+      // Route doesn't require auth, hide prompt
+      setShowAuthPrompt(false);
     }
 
     // If user is trying to access auth routes while authenticated, redirect to home
     if (isAuthenticated && isAuthRoute(pathname)) {
       console.log('AuthNavigator: User authenticated, redirecting to home');
       router.replace('/(tabs)/home');
+      setShowAuthPrompt(false); // Hide auth prompt
       return;
     }
 
     // If user is not authenticated and trying to access auth routes, let them stay
     if (!isAuthenticated && isAuthRoute(pathname)) {
       console.log('AuthNavigator: User not authenticated on auth route, allowing access');
+      setShowAuthPrompt(false); // Hide auth prompt
       return;
     }
 
@@ -181,6 +192,7 @@ export function AuthNavigator() {
     setShowAuthPrompt(false);
   }, [isAuthenticated, loading, isAuthInitialized, isOnboardingCompleted, isGuestMode, rootNavigationState?.key, pathname]);
 
+  // Now we can have conditional logic and early returns
   // Show auth prompt if needed
   if (showAuthPrompt) {
     return (

@@ -18,7 +18,7 @@ const AUTHENTICATED_TAB_CONFIG = [
 const GUEST_TAB_CONFIG = [
   { name: 'home', label: 'Home', icon: 'home-outline' },
   { name: 'search', label: 'Search', icon: 'search-outline' },
-  { name: 'login', label: 'Sign In', icon: 'log-in-outline' },
+  { name: 'signin', label: 'Sign In', icon: 'log-in-outline' },
 ];
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
@@ -32,7 +32,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const tabConfig = isAuthenticated ? AUTHENTICATED_TAB_CONFIG : GUEST_TAB_CONFIG;
 
   const handleTabPress = (routeName: string) => {
-    if (routeName === 'login') {
+    if (routeName === 'signin') {
       // Navigate to login screen
       router.push('/login');
       return;
@@ -114,7 +114,7 @@ export default function TabLayout() {
         </>
       ) : (
         <Tabs.Screen 
-          name="login" 
+          name="signin" 
           options={{
             href: null, // This prevents the tab from being rendered as a screen
           }}

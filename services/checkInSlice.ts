@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import apiClient from './apiClient';
+import { clearUserData } from './authSlice';
 
 interface CheckInResponse {
   message: string;
@@ -74,32 +75,8 @@ const checkInSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      // Handle logout by listening to the auth/logout action type
-      .addCase('auth/logout/fulfilled', (state) => {
-        // Clear checkIn data when user logs out
-        state.loading = false;
-        state.error = null;
-        state.lastCheckIn = null;
-        state.todayCheckedIn = false;
-        state.streak = {
-          current: 0,
-          longest: 0
-        };
-      })
-      .addCase('auth/logout/rejected', (state) => {
-        // Also clear checkIn data if logout fails
-        state.loading = false;
-        state.error = null;
-        state.lastCheckIn = null;
-        state.todayCheckedIn = false;
-        state.streak = {
-          current: 0,
-          longest: 0
-        };
-      })
-      // Handle user data clearing when switching users
-      .addCase('auth/clearUserData', (state) => {
-        // Clear checkIn data when switching users
+      // Listen for clearUserData action from auth slice
+      .addCase(clearUserData, (state) => {
         state.loading = false;
         state.error = null;
         state.lastCheckIn = null;

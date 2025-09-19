@@ -9,6 +9,8 @@ import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, Pressable, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../services/store';
 
 // Define the CommunityUser type locally since the import is failing
 interface CommunityUser {
@@ -100,6 +102,15 @@ export default function SkillsBankScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Add authentication check
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+
+  // Guard: If not authenticated, don't render anything
+  // This prevents any API calls or rendering for guests
+  if (!isAuthenticated) {
+    return null;
+  }
 
   const {
     data,

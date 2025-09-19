@@ -24,8 +24,8 @@ const initialState: AuthState = {
 
 // Helper to store tokens
 const storeTokens = async (accessToken: string, refreshToken: string) => {
-  await SecureStore.setItemAsync('accessToken', accessToken);
-  await SecureStore.setItemAsync('refreshToken', refreshToken);
+  await SecureStore.setItemAsync('accessToken', String(accessToken));
+  await SecureStore.setItemAsync('refreshToken', String(refreshToken));
 };
 
 // Helper to clear tokens
@@ -35,62 +35,90 @@ const clearStoredData = async () => {
   await SecureStore.deleteItemAsync('userInfo');
 };
 
+// Rate limiting helper
+const getRateLimitDelay = (attempt: number) => {
+  // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s max
+  const delay = Math.min(Math.pow(2, attempt) * 1000, 30000);
+  return delay;
+};
+
 // --- Async Thunks ---
 export const login = createAsyncThunk(
   'auth/login',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
-    try {
-      console.log('--- Starting login process... ---');
-      
-      const response = await apiClient.post('/auth/login', credentials);
-      const { accessToken, refreshToken, user } = response.data;
+    let attempt = 0;
+    const maxAttempts = 3;
 
-      // --- Token Expiration Diagnosis ---
+    while (attempt < maxAttempts) {
       try {
-        const decodedToken: { exp: number } = jwtDecode(accessToken);
-        const expirationTime = decodedToken.exp * 1000;
-        const currentTime = Date.now();
-        console.log(`[AUTH DEBUG] Token expires at: ${new Date(expirationTime).toISOString()}`);
-        console.log(`[AUTH DEBUG] Current time is:  ${new Date(currentTime).toISOString()}`);
-        if (currentTime >= expirationTime) {
-          console.error('[AUTH DEBUG] FATAL: Token is already expired upon receipt.');
-        } else {
-          console.log(`[AUTH DEBUG] Token is valid. Expires in ${((expirationTime - currentTime) / 1000 / 60).toFixed(2)} minutes.`);
+        console.log('--- Starting login process... (attempt', attempt + 1, ') ---');
+        
+        const response = await apiClient.post('/auth/login', credentials);
+        const { accessToken, refreshToken, user } = response.data;
+
+        // --- Token Expiration Diagnosis ---
+        try {
+          const decodedToken: { exp: number } = jwtDecode(accessToken);
+          const expirationTime = decodedToken.exp * 1000;
+          const currentTime = Date.now();
+          console.log(`[AUTH DEBUG] Token expires at: ${new Date(expirationTime).toISOString()}`);
+          console.log(`[AUTH DEBUG] Current time is:  ${new Date(currentTime).toISOString()}`);
+          if (currentTime >= expirationTime) {
+            console.error('[AUTH DEBUG] FATAL: Token is already expired upon receipt.');
+          } else {
+            console.log(`[AUTH DEBUG] Token is valid. Expires in ${((expirationTime - currentTime) / 1000 / 60).toFixed(2)} minutes.`);
+          }
+        } catch (e) {
+          console.error('[AUTH DEBUG] Failed to decode token.', e);
         }
-      } catch (e) {
-        console.error('[AUTH DEBUG] Failed to decode token.', e);
-      }
-      // --- End Diagnosis ---
+        // --- End Diagnosis ---
 
-      await storeTokens(accessToken, refreshToken);
-      await SecureStore.setItemAsync('userInfo', JSON.stringify(user));
-      console.log('Login successful:', response.data);
-      return response.data;
-    } catch (error: any) {
-      // Add detailed logging for better debugging
-      console.error('--- LOGIN THUNK ERROR ---');
-      if (error.response) {
-        console.error('Login Error Response:', JSON.stringify(error.response.data, null, 2));
-      } else {
-        console.error('Login Error:', error.message);
-      }
+        await storeTokens(accessToken, refreshToken);
+        await SecureStore.setItemAsync('userInfo', JSON.stringify(user));
+        console.log('Login successful:', response.data);
+        return response.data;
+      } catch (error: any) {
+        attempt++;
+        
+        // Check if it's a rate limit error
+        if (error.response?.data?.message?.includes('Too many requests') || 
+            error.response?.status === 429) {
+          
+          if (attempt < maxAttempts) {
+            const delay = getRateLimitDelay(attempt);
+            console.log(`Rate limited. Waiting ${delay}ms before retry ${attempt}/${maxAttempts}...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue; // Retry
+          } else {
+            return rejectWithValue('Too many login attempts. Please wait a few minutes and try again.');
+          }
+        }
 
-      // Handle validation errors from express-validator
-      if (error.response?.data?.errors) {
-        const errorMessages = error.response.data.errors.map((err: any) => err.msg).join(', ');
-        return rejectWithValue(errorMessages);
-      }
+        // Add detailed logging for better debugging
+        console.error('--- LOGIN THUNK ERROR ---');
+        if (error.response) {
+          console.error('Login Error Response:', JSON.stringify(error.response.data, null, 2));
+        } else {
+          console.error('Login Error:', error.message);
+        }
 
-      // Handle general message errors from the backend
-      if (error.response?.data?.message) {
-        return rejectWithValue(error.response.data.message);
+        // Handle validation errors from express-validator
+        if (error.response?.data?.errors) {
+          const errorMessages = error.response.data.errors.map((err: any) => err.msg).join(', ');
+          return rejectWithValue(errorMessages);
+        }
+
+        // Handle general message errors from the backend
+        if (error.response?.data?.message) {
+          return rejectWithValue(error.response.data.message);
+        }
+        
+        // Handle network errors or other unexpected issues
+        if (error.message && error.message.toLowerCase().includes('network')) {
+          return rejectWithValue('Unable to connect to the server. Please check your internet connection and try again.');
+        }
+        return rejectWithValue(error.message || 'Login failed due to an unknown error.');
       }
-      
-      // Handle network errors or other unexpected issues
-      if (error.message && error.message.toLowerCase().includes('network')) {
-        return rejectWithValue('Unable to connect to the server. Please check your internet connection and try again.');
-      }
-      return rejectWithValue(error.message || 'Login failed due to an unknown error.');
     }
   }
 );
